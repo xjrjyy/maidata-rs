@@ -176,6 +176,7 @@ pub struct TapParams {
 
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct TouchParams {
+    pub is_firework: bool,
     pub sensor: TouchSensor,
 }
 
@@ -188,6 +189,7 @@ pub struct HoldParams {
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct TouchHoldParams {
+    pub is_firework: bool,
     pub sensor: TouchSensor,
     pub len: Length,
 }

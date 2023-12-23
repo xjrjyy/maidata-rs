@@ -41,7 +41,7 @@
         - [x] `[160#2]`
         - [x] `[3##1.5]`
 * [x] TOUCH `B,`
-    - [ ] FIREWORK 修饰符 `Bf,`
+    - [x] FIREWORK 修饰符 `Bf,`
 * [x] TOUCH HOLD `Bh[length],`
 * [x] BOTH/EACH `note/note,`
     - [x] 支持任意个数的多押 (3simai)
