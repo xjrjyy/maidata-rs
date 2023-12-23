@@ -11,6 +11,7 @@ pub enum RawNoteInsn {
     Tap(TapParams),
     Touch(TouchParams),
     Hold(HoldParams),
+    TouchHold(TouchHoldParams),
     Slide(SlideParams),
 }
 

@@ -43,7 +43,7 @@ Map definition instructions:
         - [x] `[3##1.5]`
 * [x] TOUCH `B,`
     - [ ] FIREWORK modifier `Bf,`
-* [ ] TOUCH HOLD `Bh[length],`
+* [x] TOUCH HOLD `Bh[length],`
 * [x] BOTH/EACH `note/note,`
     - [x] arbitrary number of concurrent notes allowed (3simai)
 

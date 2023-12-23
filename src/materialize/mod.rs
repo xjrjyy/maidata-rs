@@ -13,6 +13,7 @@ pub enum Note {
     Tap(MaterializedTap),
     Touch(MaterializedTouch),
     Hold(MaterializedHold),
+    TouchHold(MaterializedTouchHold),
     SlideTrack(MaterializedSlideTrack),
 }
 
@@ -43,6 +44,13 @@ pub struct MaterializedHold {
     pub dur: DurationInSeconds,
     pub key: Key,
     pub is_ex: bool,
+}
+
+#[derive(Copy, Clone, Debug)]
+pub struct MaterializedTouchHold {
+    pub ts: TimestampInSeconds,
+    pub dur: DurationInSeconds,
+    pub sensor: TouchSensor,
 }
 
 #[derive(Copy, Clone, Debug)]

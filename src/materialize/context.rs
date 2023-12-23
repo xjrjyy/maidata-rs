@@ -2,7 +2,7 @@ use super::Note;
 use crate::insn;
 use crate::materialize::{
     MaterializedHold, MaterializedSlideTrack, MaterializedTap, MaterializedTapShape,
-    MaterializedTouch,
+    MaterializedTouch, MaterializedTouchHold,
 };
 
 pub struct MaterializationContext {
@@ -109,6 +109,10 @@ impl MaterializationContext {
                 let m_params = materialize_hold_params(ts, self.curr_beat_dur, params);
                 vec![Note::Hold(m_params)]
             }
+            insn::RawNoteInsn::TouchHold(params) => {
+                let m_params = materialize_touch_hold_params(ts, self.curr_beat_dur, params);
+                vec![Note::TouchHold(m_params)]
+            }
         }
     }
 }
@@ -198,6 +202,18 @@ fn materialize_hold_params(ts: f32, beat_dur: f32, p: &insn::HoldParams) -> Mate
         dur: materialize_duration(p.len, beat_dur),
         key: p.key,
         is_ex: p.is_ex,
+    }
+}
+
+fn materialize_touch_hold_params(
+    ts: f32,
+    beat_dur: f32,
+    p: &insn::TouchHoldParams,
+) -> MaterializedTouchHold {
+    MaterializedTouchHold {
+        ts,
+        dur: materialize_duration(p.len, beat_dur),
+        sensor: p.sensor,
     }
 }
 

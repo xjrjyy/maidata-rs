@@ -27,6 +27,7 @@ fn parse_one_maidata_insn(s: NomSpan) -> PResult<SpRawInsn> {
         t_tap_multi_simplified,
         t_touch_single,
         t_hold_single,
+        t_touch_hold_single,
         t_slide_single,
         t_bundle,
         t_end_mark,
@@ -375,6 +376,39 @@ fn t_hold_single(s: NomSpan) -> PResult<SpRawInsn> {
     Ok((s, RawInsn::Note(note).with_span(span)))
 }
 
+fn t_touch_hold(s: NomSpan) -> PResult<SpRawNoteInsn> {
+    use nom::character::complete::char;
+
+    let (s, _) = multispace0(s)?;
+    let (s, start_loc) = nom_locate::position(s)?;
+    let (s, sensor) = t_touch_sensor(s)?;
+    let (s, _) = multispace0(s)?;
+    let (s, _) = char('h')(s)?;
+    let (s, _) = multispace0(s)?;
+    let (s, len) = t_len(s)?;
+    let (s, end_loc) = nom_locate::position(s)?;
+    let (s, _) = multispace0(s)?;
+
+    let span = (start_loc, end_loc);
+    Ok((
+        s,
+        RawNoteInsn::TouchHold(TouchHoldParams { sensor, len }).with_span(span),
+    ))
+}
+
+fn t_touch_hold_single(s: NomSpan) -> PResult<SpRawInsn> {
+    let (s, _) = multispace0(s)?;
+    let (s, start_loc) = nom_locate::position(s)?;
+    let (s, note) = t_touch_hold(s)?;
+    let (s, _) = multispace0(s)?;
+    let (s, _) = t_note_sep(s)?;
+    let (s, end_loc) = nom_locate::position(s)?;
+    let (s, _) = multispace0(s)?;
+
+    let span = (start_loc, end_loc);
+    Ok((s, RawInsn::Note(note).with_span(span)))
+}
+
 fn t_slide_len_simple(s: NomSpan) -> PResult<SlideLength> {
     let (s, len) = t_len(s)?;
 
@@ -560,8 +594,8 @@ fn t_slide_single(s: NomSpan) -> PResult<SpRawInsn> {
 
 fn t_bundle_note(s: NomSpan) -> PResult<SpRawNoteInsn> {
     let (s, _) = multispace0(s)?;
-    // NOTE: tap must come last as it can match on the simplest key, blocking holds and slides from parsing
-    let (s, note) = nom::branch::alt((t_touch, t_hold, t_slide, t_tap))(s)?;
+    // NOTE: tap and touch must come last as it can match on the simplest key, blocking holds and slides from parsing
+    let (s, note) = nom::branch::alt((t_hold, t_touch_hold, t_slide, t_tap, t_touch))(s)?;
     let (s, _) = multispace0(s)?;
 
     Ok((s, note))

@@ -186,6 +186,12 @@ pub struct HoldParams {
     pub len: Length,
 }
 
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub struct TouchHoldParams {
+    pub sensor: TouchSensor,
+    pub len: Length,
+}
+
 #[derive(Clone, PartialEq, Debug)]
 pub struct SlideParams {
     pub start: TapParams,
