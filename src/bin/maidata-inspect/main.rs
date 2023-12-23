@@ -43,4 +43,3 @@ fn read_file<P: AsRef<std::path::Path>>(path: P) -> String {
     let content = std::fs::read(path.as_ref()).expect("file reading failed");
     String::from_utf8(content).expect("decoding file content as utf-8 failed")
 }
-
