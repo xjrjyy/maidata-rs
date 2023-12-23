@@ -5,6 +5,6 @@ pub struct BpmParams {
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum BeatDivisorParams {
-    NewDivisor(u8),
+    NewDivisor(u32),
     NewAbsoluteDuration(f32),
 }

@@ -99,8 +99,8 @@ impl SlideLength {
 
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct NumBeatsParams {
-    pub divisor: u8,
-    pub num: u8,
+    pub divisor: u32,
+    pub num: u32,
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]

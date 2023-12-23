@@ -91,7 +91,6 @@ fn t_beat_divisor_param_int(s: NomSpan) -> PResult<BeatDivisorParams> {
     let (s, divisor_str) = digit1(s)?;
     let (s, _) = multispace0(s)?;
 
-    // TODO: out-of-range conversion failures
     let divisor = divisor_str.fragment().parse().unwrap();
 
     Ok((s, BeatDivisorParams::NewDivisor(divisor)))

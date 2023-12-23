@@ -81,7 +81,7 @@ impl MaterializationContext {
         self.curr_beat_dur = bpm_to_beat_dur(new_bpm);
     }
 
-    fn set_beat_divisor(&mut self, new_divisor: u8) {
+    fn set_beat_divisor(&mut self, new_divisor: u32) {
         self.curr_note_dur = divide_beat(self.curr_beat_dur, new_divisor);
     }
 
@@ -112,7 +112,7 @@ fn bpm_to_beat_dur(bpm: f32) -> f32 {
     60.0 / bpm
 }
 
-fn divide_beat(beat_dur: f32, beat_divisor: u8) -> f32 {
+fn divide_beat(beat_dur: f32, beat_divisor: u32) -> f32 {
     beat_dur * 4.0 / (beat_divisor as f32)
 }
 
