@@ -1,4 +1,4 @@
-use nom::{character::complete::multispace0, combinator::eof};
+use nom::character::complete::multispace0;
 
 use super::*;
 use crate::{NomSpan, PResult, WithSpan};
@@ -13,6 +13,7 @@ pub(crate) fn parse_maidata_insns(s: NomSpan) -> PResult<Vec<SpRawInsn>> {
 }
 
 fn t_eof(s: NomSpan) -> PResult<NomSpan> {
+    use nom::combinator::eof;
     eof(s)
 }
 

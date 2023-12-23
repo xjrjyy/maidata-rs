@@ -1,4 +1,4 @@
-use nom::{IResult, combinator::eof};
+use nom::IResult;
 
 use crate::{NomSpan, PResult};
 use std::collections::HashMap;
@@ -254,6 +254,7 @@ fn lex_maidata_inner(s: NomSpan) -> IResult<NomSpan, Vec<KeyVal>> {
 
 // TODO: dedup (with insn::parser::t_eof)
 fn t_eof(s: NomSpan) -> PResult<NomSpan> {
+    use nom::combinator::eof;
     eof(s)
 }
 
