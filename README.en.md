@@ -29,6 +29,7 @@ Map definition instructions:
 * [x] TAP `B,`
     - [x] simplified BOTH/EACH TAP form (`16` `38` etc.; `123` and such are also allowed)
     - [x] BREAK modifier `Bb,`
+    - [x] EX NOTES modifier `Bx,`
     - [ ] star-shape modifier `B$,` `Bb$, B$b,` `B$$,`
 * [x] HOLD `Bh[length],`
     - [x] normal duration spec `[x:y]`

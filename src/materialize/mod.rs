@@ -20,6 +20,7 @@ pub struct MaterializedTap {
     pub ts: TimestampInSeconds,
     pub key: Key,
     pub shape: MaterializedTapShape,
+    pub is_ex: bool,
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
@@ -34,6 +35,7 @@ pub struct MaterializedHold {
     pub ts: TimestampInSeconds,
     pub dur: DurationInSeconds,
     pub key: Key,
+    pub is_ex: bool,
 }
 
 #[derive(Copy, Clone, Debug)]

@@ -28,6 +28,7 @@
 * [x] TAP `B,`
     - [x] BOTH/EACH TAP 简化形式 (`16` `38` etc.; `123` 之类的多押也允许)
     - [x] BREAK 修饰符 `Bb,`
+    - [x] EX NOTES 修饰符 `Bx,`
     - [ ] 强制星星形状修饰符 `B$,` `Bb$, B$b,` `B$$,`
 * [x] HOLD `Bh[length],`
     - [x] 通常时值形式 `[x:y]`

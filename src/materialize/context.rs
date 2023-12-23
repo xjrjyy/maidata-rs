@@ -117,9 +117,9 @@ fn divide_beat(beat_dur: f32, beat_divisor: u32) -> f32 {
 }
 
 fn materialize_tap_params(ts: f32, p: &insn::TapParams, is_slide_star: bool) -> MaterializedTap {
-    let shape = match (is_slide_star, p.variant) {
-        (false, insn::TapVariant::Tap) => MaterializedTapShape::Ring,
-        (false, insn::TapVariant::Break) => MaterializedTapShape::Break,
+    let shape = match (is_slide_star, p.is_break) {
+        (false, false) => MaterializedTapShape::Ring,
+        (false, true) => MaterializedTapShape::Break,
         (true, _) => MaterializedTapShape::Star,
     };
 
@@ -127,6 +127,7 @@ fn materialize_tap_params(ts: f32, p: &insn::TapParams, is_slide_star: bool) -> 
         ts,
         key: p.key,
         shape,
+        is_ex: p.is_ex,
     }
 }
 
@@ -184,6 +185,7 @@ fn materialize_hold_params(ts: f32, beat_dur: f32, p: &insn::HoldParams) -> Mate
         ts,
         dur: materialize_duration(p.len, beat_dur),
         key: p.key,
+        is_ex: p.is_ex,
     }
 }
 

@@ -152,15 +152,24 @@ fn t_tap_param(s: NomSpan) -> PResult<TapParams> {
     let (s, _) = multispace0(s)?;
     let (s, key) = t_key(s)?;
     let (s, _) = multispace0(s)?;
+    let (s, is_ex) = opt(char('x'))(s)?;
+    let (s, _) = multispace0(s)?;
     let (s, is_break) = opt(char('b'))(s)?;
     let (s, _) = multispace0(s)?;
-
-    let variant = match is_break {
-        Some(_) => TapVariant::Break,
-        None => TapVariant::Tap,
+    let (s, is_ex) = match is_ex {
+        Some(_) => (s, is_ex),
+        None => opt(char('x'))(s)?,
     };
+    let (s, _) = multispace0(s)?;
 
-    Ok((s, TapParams { variant, key }))
+    Ok((
+        s,
+        TapParams {
+            is_break: is_break.is_some(),
+            is_ex: is_ex.is_some(),
+            key,
+        },
+    ))
 }
 
 fn t_tap(s: NomSpan) -> PResult<SpRawNoteInsn> {
@@ -193,13 +202,16 @@ fn t_tap_multi_simplified_every(s: NomSpan) -> PResult<SpRawNoteInsn> {
     let (s, end_loc) = nom_locate::position(s)?;
     let (s, _) = multispace0(s)?;
 
-    // all taps are regular ones when using simplified notation
-    let variant = TapVariant::Tap;
-
     let span = (start_loc, end_loc);
     Ok((
         s,
-        RawNoteInsn::Tap(TapParams { variant, key }).with_span(span),
+        RawNoteInsn::Tap(TapParams {
+            // all taps are regular ones when using simplified notation
+            is_break: false,
+            is_ex: false,
+            key,
+        })
+        .with_span(span),
     ))
 }
 
@@ -268,11 +280,21 @@ fn t_len(s: NomSpan) -> PResult<Length> {
 
 fn t_hold(s: NomSpan) -> PResult<SpRawNoteInsn> {
     use nom::character::complete::char;
+    use nom::combinator::opt;
 
     let (s, _) = multispace0(s)?;
     let (s, start_loc) = nom_locate::position(s)?;
     let (s, key) = t_key(s)?;
+    let (s, _) = multispace0(s)?;
+    let (s, is_ex) = opt(char('x'))(s)?;
+    let (s, _) = multispace0(s)?;
     let (s, _) = char('h')(s)?;
+    let (s, _) = multispace0(s)?;
+    let (s, is_ex) = match is_ex {
+        Some(_) => (s, is_ex),
+        None => opt(char('x'))(s)?,
+    };
+    let (s, _) = multispace0(s)?;
     let (s, len) = t_len(s)?;
     let (s, end_loc) = nom_locate::position(s)?;
     let (s, _) = multispace0(s)?;
@@ -280,7 +302,12 @@ fn t_hold(s: NomSpan) -> PResult<SpRawNoteInsn> {
     let span = (start_loc, end_loc);
     Ok((
         s,
-        RawNoteInsn::Hold(HoldParams { key, len }).with_span(span),
+        RawNoteInsn::Hold(HoldParams {
+            is_ex: is_ex.is_some(),
+            key,
+            len,
+        })
+        .with_span(span),
     ))
 }
 

@@ -105,18 +105,14 @@ pub struct NumBeatsParams {
 
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct TapParams {
-    pub variant: TapVariant,
+    pub is_break: bool,
+    pub is_ex: bool,
     pub key: Key,
-}
-
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
-pub enum TapVariant {
-    Tap,
-    Break,
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct HoldParams {
+    pub is_ex: bool,
     pub key: Key,
     pub len: Length,
 }
