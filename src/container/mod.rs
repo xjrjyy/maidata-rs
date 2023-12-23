@@ -1,4 +1,4 @@
-use nom::IResult;
+use nom::{IResult, combinator::eof};
 
 use crate::{NomSpan, PResult};
 use std::collections::HashMap;
@@ -254,7 +254,7 @@ fn lex_maidata_inner(s: NomSpan) -> IResult<NomSpan, Vec<KeyVal>> {
 
 // TODO: dedup (with insn::parser::t_eof)
 fn t_eof(s: NomSpan) -> PResult<NomSpan> {
-    nom::eof!(s,)
+    eof(s)
 }
 
 fn lex_keyval(s: NomSpan) -> IResult<NomSpan, KeyVal> {
@@ -351,7 +351,7 @@ impl std::convert::TryFrom<NomSpan<'_>> for crate::Level {
     fn try_from(value: NomSpan) -> Result<Self, Self::Error> {
         match t_level(value) {
             Ok((_, value)) => Ok(value),
-            Err(e) => Err(e.map(|(_, x)| x)),
+            Err(e) => Err(e.map(|x| x.code)),
         }
     }
 }

@@ -2,8 +2,8 @@
 name = "maidata"
 version = "0.0.0"
 authors = ["WANG Xuerui <git@xen0n.name>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
-nom = "5"
-nom_locate = "2"
+nom = "7"
+nom_locate = "4"

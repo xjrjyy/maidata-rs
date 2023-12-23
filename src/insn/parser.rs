@@ -1,4 +1,4 @@
-use nom::character::complete::multispace0;
+use nom::{character::complete::multispace0, combinator::eof};
 
 use super::*;
 use crate::{NomSpan, PResult, WithSpan};
@@ -13,7 +13,7 @@ pub(crate) fn parse_maidata_insns(s: NomSpan) -> PResult<Vec<SpRawInsn>> {
 }
 
 fn t_eof(s: NomSpan) -> PResult<NomSpan> {
-    nom::eof!(s,)
+    eof(s)
 }
 
 fn parse_one_maidata_insn(s: NomSpan) -> PResult<SpRawInsn> {
@@ -129,7 +129,6 @@ fn t_beat_divisor(s: NomSpan) -> PResult<SpRawInsn> {
 
 #[cfg_attr(rustfmt, rustfmt_skip)]
 fn t_key(s: NomSpan) -> PResult<Key> {
-    use std::convert::TryFrom;
     use nom::combinator::map;
     use nom::character::complete::one_of;
 
