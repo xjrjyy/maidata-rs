@@ -135,21 +135,21 @@ pub fn lex_maidata<'a>(x: &'a str) -> Maidata {
             ( $num: literal => $diff: expr ) => {
                 match k {
                     concat!("des_", stringify!($num)) => {
-                        let mut data = diff_map
+                        let data = diff_map
                             .entry($diff)
                             .or_insert(BeatmapData::default_with_difficulty($diff));
                         data.designer = Some(v.to_owned());
                         handled = true;
                     }
                     concat!("first_", stringify!($num)) => {
-                        let mut data = diff_map
+                        let data = diff_map
                             .entry($diff)
                             .or_insert(BeatmapData::default_with_difficulty($diff));
                         data.offset = Some(v.parse().expect("parse offset failed"));
                         handled = true;
                     }
                     concat!("inote_", stringify!($num)) => {
-                        let mut data = diff_map
+                        let data = diff_map
                             .entry($diff)
                             .or_insert(BeatmapData::default_with_difficulty($diff));
                         data.insns = crate::insn::parse_maidata_insns(kv.val)
@@ -161,7 +161,7 @@ pub fn lex_maidata<'a>(x: &'a str) -> Maidata {
                     concat!("lv_", stringify!($num)) => {
                         use std::convert::TryInto;
 
-                        let mut data = diff_map
+                        let data = diff_map
                             .entry($diff)
                             .or_insert(BeatmapData::default_with_difficulty($diff));
                         match kv.val.try_into() {
@@ -175,7 +175,7 @@ pub fn lex_maidata<'a>(x: &'a str) -> Maidata {
                         handled = true;
                     }
                     concat!("smsg_", stringify!($num)) | concat!("freemsg_", stringify!($num)) => {
-                        let mut data = diff_map
+                        let data = diff_map
                             .entry($diff)
                             .or_insert(BeatmapData::default_with_difficulty($diff));
                         data.single_message = Some(v.to_owned());
