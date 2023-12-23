@@ -25,6 +25,7 @@ fn parse_one_maidata_insn(s: NomSpan) -> PResult<SpRawInsn> {
         t_rest,
         t_tap_single,
         t_tap_multi_simplified,
+        t_touch_single,
         t_hold_single,
         t_slide_single,
         t_bundle,
@@ -135,6 +136,23 @@ fn t_key(s: NomSpan) -> PResult<Key> {
     map(one_of("12345678"), |s| Key::try_from(s).unwrap())(s)
 }
 
+fn t_touch_sensor(s: NomSpan) -> PResult<TouchSensor> {
+    use nom::character::complete::{char, one_of};
+    use nom::combinator::{map, opt};
+    use nom::sequence::separated_pair;
+
+    let (s, touch_sensor) = nom::branch::alt((
+        separated_pair(one_of("ABDE"), multispace0, one_of("12345678")),
+        separated_pair(
+            char('C'),
+            multispace0,
+            map(opt(one_of("12")), |x| x.unwrap_or('1')),
+        ),
+    ))(s)?;
+
+    Ok((s, TouchSensor::try_from(touch_sensor).unwrap()))
+}
+
 fn t_rest(s: NomSpan) -> PResult<SpRawInsn> {
     let (s, _) = multispace0(s)?;
     let (s, start_loc) = nom_locate::position(s)?;
@@ -231,6 +249,38 @@ fn t_tap_multi_simplified(s: NomSpan) -> PResult<SpRawInsn> {
 
     let span = (start_loc, end_loc);
     Ok((s, RawInsn::NoteBundle(notes).with_span(span)))
+}
+
+fn t_touch_param(s: NomSpan) -> PResult<TouchParams> {
+    let (s, _) = multispace0(s)?;
+    let (s, sensor) = t_touch_sensor(s)?;
+    let (s, _) = multispace0(s)?;
+
+    Ok((s, TouchParams { sensor }))
+}
+
+fn t_touch(s: NomSpan) -> PResult<SpRawNoteInsn> {
+    let (s, _) = multispace0(s)?;
+    let (s, start_loc) = nom_locate::position(s)?;
+    let (s, params) = t_touch_param(s)?;
+    let (s, end_loc) = nom_locate::position(s)?;
+    let (s, _) = multispace0(s)?;
+
+    let span = (start_loc, end_loc);
+    Ok((s, RawNoteInsn::Touch(params).with_span(span)))
+}
+
+fn t_touch_single(s: NomSpan) -> PResult<SpRawInsn> {
+    let (s, _) = multispace0(s)?;
+    let (s, start_loc) = nom_locate::position(s)?;
+    let (s, note) = t_touch(s)?;
+    let (s, _) = multispace0(s)?;
+    let (s, _) = t_note_sep(s)?;
+    let (s, end_loc) = nom_locate::position(s)?;
+    let (s, _) = multispace0(s)?;
+
+    let span = (start_loc, end_loc);
+    Ok((s, RawInsn::Note(note).with_span(span)))
 }
 
 fn t_len_spec_beats(s: NomSpan) -> PResult<Length> {
@@ -511,7 +561,7 @@ fn t_slide_single(s: NomSpan) -> PResult<SpRawInsn> {
 fn t_bundle_note(s: NomSpan) -> PResult<SpRawNoteInsn> {
     let (s, _) = multispace0(s)?;
     // NOTE: tap must come last as it can match on the simplest key, blocking holds and slides from parsing
-    let (s, note) = nom::branch::alt((t_hold, t_slide, t_tap))(s)?;
+    let (s, note) = nom::branch::alt((t_touch, t_hold, t_slide, t_tap))(s)?;
     let (s, _) = multispace0(s)?;
 
     Ok((s, note))

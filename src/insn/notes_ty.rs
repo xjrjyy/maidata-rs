@@ -70,6 +70,70 @@ pub enum TouchSensor {
     E8,
 }
 
+#[derive(Clone, Debug)]
+pub enum TouchSensorParseError {
+    InvalidTouchSensor((char, char)),
+}
+
+impl std::convert::TryFrom<(char, char)> for TouchSensor {
+    type Error = TouchSensorParseError;
+
+    fn try_from(x: (char, char)) -> Result<Self, Self::Error> {
+        match x.0 {
+            'A' => match x.1 {
+                '1' => Ok(Self::A1),
+                '2' => Ok(Self::A2),
+                '3' => Ok(Self::A3),
+                '4' => Ok(Self::A4),
+                '5' => Ok(Self::A5),
+                '6' => Ok(Self::A6),
+                '7' => Ok(Self::A7),
+                '8' => Ok(Self::A8),
+                _ => Err(TouchSensorParseError::InvalidTouchSensor(x)),
+            },
+            'B' => match x.1 {
+                '1' => Ok(Self::B1),
+                '2' => Ok(Self::B2),
+                '3' => Ok(Self::B3),
+                '4' => Ok(Self::B4),
+                '5' => Ok(Self::B5),
+                '6' => Ok(Self::B6),
+                '7' => Ok(Self::B7),
+                '8' => Ok(Self::B8),
+                _ => Err(TouchSensorParseError::InvalidTouchSensor(x)),
+            },
+            'C' => match x.1 {
+                '1' => Ok(Self::C),
+                '2' => Ok(Self::C),
+                _ => Err(TouchSensorParseError::InvalidTouchSensor(x)),
+            },
+            'D' => match x.1 {
+                '1' => Ok(Self::D1),
+                '2' => Ok(Self::D2),
+                '3' => Ok(Self::D3),
+                '4' => Ok(Self::D4),
+                '5' => Ok(Self::D5),
+                '6' => Ok(Self::D6),
+                '7' => Ok(Self::D7),
+                '8' => Ok(Self::D8),
+                _ => Err(TouchSensorParseError::InvalidTouchSensor(x)),
+            },
+            'E' => match x.1 {
+                '1' => Ok(Self::E1),
+                '2' => Ok(Self::E2),
+                '3' => Ok(Self::E3),
+                '4' => Ok(Self::E4),
+                '5' => Ok(Self::E5),
+                '6' => Ok(Self::E6),
+                '7' => Ok(Self::E7),
+                '8' => Ok(Self::E8),
+                _ => Err(TouchSensorParseError::InvalidTouchSensor(x)),
+            },
+            _ => Err(TouchSensorParseError::InvalidTouchSensor(x)),
+        }
+    }
+}
+
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Length {
     NumBeats(NumBeatsParams),
@@ -108,6 +172,11 @@ pub struct TapParams {
     pub is_break: bool,
     pub is_ex: bool,
     pub key: Key,
+}
+
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+pub struct TouchParams {
+    pub sensor: TouchSensor,
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]

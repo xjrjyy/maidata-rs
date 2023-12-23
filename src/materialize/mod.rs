@@ -2,7 +2,7 @@ mod context;
 
 pub use context::*;
 
-use crate::insn::{Key, SlideShape};
+use crate::insn::{Key, SlideShape, TouchSensor};
 
 pub type TimestampInSeconds = f32;
 
@@ -11,6 +11,7 @@ pub type DurationInSeconds = f32;
 #[derive(Copy, Clone, Debug)]
 pub enum Note {
     Tap(MaterializedTap),
+    Touch(MaterializedTouch),
     Hold(MaterializedHold),
     SlideTrack(MaterializedSlideTrack),
 }
@@ -28,6 +29,12 @@ pub enum MaterializedTapShape {
     Ring,
     Break,
     Star,
+}
+
+#[derive(Copy, Clone, Debug)]
+pub struct MaterializedTouch {
+    pub ts: TimestampInSeconds,
+    pub sensor: TouchSensor,
 }
 
 #[derive(Copy, Clone, Debug)]

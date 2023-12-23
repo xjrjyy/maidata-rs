@@ -9,6 +9,7 @@ pub(crate) use parser::parse_maidata_insns;
 #[derive(Clone, PartialEq, Debug)]
 pub enum RawNoteInsn {
     Tap(TapParams),
+    Touch(TouchParams),
     Hold(HoldParams),
     Slide(SlideParams),
 }
