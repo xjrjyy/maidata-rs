@@ -169,7 +169,7 @@ fn materialize_slide_track_params(
     ts: f32,
     beat_dur: f32,
     start_key: insn::Key,
-    track: &insn::SlideTrack,
+    track: &insn::SlideSingleTrack,
 ) -> MaterializedSlideTrack {
     let shape = track.shape();
     let params = track.params();

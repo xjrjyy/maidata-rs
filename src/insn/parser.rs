@@ -422,7 +422,7 @@ fn t_slide_len(s: NomSpan) -> PResult<SlideLength> {
 macro_rules! define_slide_track {
     (@ $fn_name: ident, $recog: expr, $variant: ident) => {
         #[allow(unused_imports)]
-        fn $fn_name(s: NomSpan) -> PResult<SlideTrack> {
+        fn $fn_name(s: NomSpan) -> PResult<SlideSingleTrack> {
             use nom::character::complete::char;
             use nom::bytes::complete::tag;
 
@@ -437,7 +437,7 @@ macro_rules! define_slide_track {
 
             Ok((
                 s,
-                SlideTrack::$variant(SlideTrackParams {
+                SlideSingleTrack::$variant(SlideSingleTrackParams {
                     destination,
                     interim: None,
                     len,
@@ -468,7 +468,7 @@ define_slide_track!(t_slide_track_pp, tag "pp", Pp);
 define_slide_track!(t_slide_track_qq, tag "qq", Qq);
 define_slide_track!(t_slide_track_spread, char 'w', Spread);
 
-fn t_slide_track_angle(s: NomSpan) -> PResult<SlideTrack> {
+fn t_slide_track_angle(s: NomSpan) -> PResult<SlideSingleTrack> {
     use nom::character::complete::char;
 
     let (s, _) = multispace0(s)?;
@@ -484,7 +484,7 @@ fn t_slide_track_angle(s: NomSpan) -> PResult<SlideTrack> {
 
     Ok((
         s,
-        SlideTrack::Angle(SlideTrackParams {
+        SlideSingleTrack::Angle(SlideSingleTrackParams {
             destination,
             interim: Some(interim),
             len,
@@ -492,7 +492,7 @@ fn t_slide_track_angle(s: NomSpan) -> PResult<SlideTrack> {
     ))
 }
 
-fn t_slide_track(s: NomSpan) -> PResult<SlideTrack> {
+fn t_slide_track(s: NomSpan) -> PResult<SlideSingleTrack> {
     nom::branch::alt((
         t_slide_track_line,
         t_slide_track_arc,
@@ -510,7 +510,7 @@ fn t_slide_track(s: NomSpan) -> PResult<SlideTrack> {
     ))(s)
 }
 
-fn t_slide_sep_track(s: NomSpan) -> PResult<SlideTrack> {
+fn t_slide_sep_track(s: NomSpan) -> PResult<SlideSingleTrack> {
     use nom::character::complete::char;
 
     let (s, _) = multispace0(s)?;
