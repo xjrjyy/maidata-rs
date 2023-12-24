@@ -23,12 +23,8 @@ fn parse_one_maidata_insn(s: NomSpan) -> PResult<SpRawInsn> {
         t_bpm,
         t_beat_divisor,
         t_rest,
-        t_tap_single,
+        t_single_note,
         t_tap_multi_simplified,
-        t_touch_single,
-        t_hold_single,
-        t_touch_hold_single,
-        t_slide_single,
         t_bundle,
         t_end_mark,
     ))(s)?;
@@ -203,19 +199,6 @@ fn t_tap(s: NomSpan) -> PResult<SpRawNoteInsn> {
     Ok((s, RawNoteInsn::Tap(params).with_span(span)))
 }
 
-fn t_tap_single(s: NomSpan) -> PResult<SpRawInsn> {
-    let (s, _) = multispace0(s)?;
-    let (s, start_loc) = nom_locate::position(s)?;
-    let (s, note) = t_tap(s)?;
-    let (s, _) = multispace0(s)?;
-    let (s, _) = t_note_sep(s)?;
-    let (s, end_loc) = nom_locate::position(s)?;
-    let (s, _) = multispace0(s)?;
-
-    let span = (start_loc, end_loc);
-    Ok((s, RawInsn::Note(note).with_span(span)))
-}
-
 fn t_tap_multi_simplified_every(s: NomSpan) -> PResult<SpRawNoteInsn> {
     let (s, start_loc) = nom_locate::position(s)?;
     let (s, key) = t_key(s)?;
@@ -280,19 +263,6 @@ fn t_touch(s: NomSpan) -> PResult<SpRawNoteInsn> {
 
     let span = (start_loc, end_loc);
     Ok((s, RawNoteInsn::Touch(params).with_span(span)))
-}
-
-fn t_touch_single(s: NomSpan) -> PResult<SpRawInsn> {
-    let (s, _) = multispace0(s)?;
-    let (s, start_loc) = nom_locate::position(s)?;
-    let (s, note) = t_touch(s)?;
-    let (s, _) = multispace0(s)?;
-    let (s, _) = t_note_sep(s)?;
-    let (s, end_loc) = nom_locate::position(s)?;
-    let (s, _) = multispace0(s)?;
-
-    let span = (start_loc, end_loc);
-    Ok((s, RawInsn::Note(note).with_span(span)))
 }
 
 fn t_len_spec_beats(s: NomSpan) -> PResult<Length> {
@@ -374,19 +344,6 @@ fn t_hold(s: NomSpan) -> PResult<SpRawNoteInsn> {
     ))
 }
 
-fn t_hold_single(s: NomSpan) -> PResult<SpRawInsn> {
-    let (s, _) = multispace0(s)?;
-    let (s, start_loc) = nom_locate::position(s)?;
-    let (s, note) = t_hold(s)?;
-    let (s, _) = multispace0(s)?;
-    let (s, _) = t_note_sep(s)?;
-    let (s, end_loc) = nom_locate::position(s)?;
-    let (s, _) = multispace0(s)?;
-
-    let span = (start_loc, end_loc);
-    Ok((s, RawInsn::Note(note).with_span(span)))
-}
-
 fn t_touch_hold(s: NomSpan) -> PResult<SpRawNoteInsn> {
     use nom::character::complete::char;
     use nom::combinator::opt;
@@ -418,19 +375,6 @@ fn t_touch_hold(s: NomSpan) -> PResult<SpRawNoteInsn> {
         })
         .with_span(span),
     ))
-}
-
-fn t_touch_hold_single(s: NomSpan) -> PResult<SpRawInsn> {
-    let (s, _) = multispace0(s)?;
-    let (s, start_loc) = nom_locate::position(s)?;
-    let (s, note) = t_touch_hold(s)?;
-    let (s, _) = multispace0(s)?;
-    let (s, _) = t_note_sep(s)?;
-    let (s, end_loc) = nom_locate::position(s)?;
-    let (s, _) = multispace0(s)?;
-
-    let span = (start_loc, end_loc);
-    Ok((s, RawInsn::Note(note).with_span(span)))
 }
 
 fn t_slide_len_simple(s: NomSpan) -> PResult<SlideLength> {
@@ -603,10 +547,10 @@ fn t_slide(s: NomSpan) -> PResult<SpRawNoteInsn> {
     ))
 }
 
-fn t_slide_single(s: NomSpan) -> PResult<SpRawInsn> {
+fn t_single_note(s: NomSpan) -> PResult<SpRawInsn> {
     let (s, _) = multispace0(s)?;
     let (s, start_loc) = nom_locate::position(s)?;
-    let (s, note) = t_slide(s)?;
+    let (s, note) = nom::branch::alt((t_hold, t_touch_hold, t_slide, t_tap, t_touch))(s)?;
     let (s, _) = multispace0(s)?;
     let (s, _) = t_note_sep(s)?;
     let (s, end_loc) = nom_locate::position(s)?;
