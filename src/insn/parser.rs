@@ -604,3 +604,85 @@ fn t_bundle(s: NomSpan) -> PResult<SpRawInsn> {
     let span = (start_loc, end_loc);
     Ok((s, RawInsn::NoteBundle(notes).with_span(span)))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::error::Error;
+
+    #[test]
+    fn test_t_bpm() -> Result<(), Box<dyn Error>> {
+        let result = t_bpm("(123456)".into())?;
+        assert_eq!(*result.0, "");
+        assert_eq!(*result.1, RawInsn::Bpm(BpmParams { new_bpm: 123456.0 }));
+
+        let result = t_bpm("(123.4) { 4}1, ".into())?;
+        assert_eq!(*result.0, "{ 4}1, ");
+        assert_eq!(*result.1, RawInsn::Bpm(BpmParams { new_bpm: 123.4 }));
+
+        assert!(t_bpm("(123 456)".into()).is_err());
+        assert!(t_bpm("()".into()).is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_t_key() -> Result<(), Box<dyn Error>> {
+        let result = t_key("1 ,".into())?;
+        assert_eq!(*result.0, " ,");
+        assert_eq!(result.1, Key::K1);
+
+        assert!(t_key(" 2".into()).is_err());
+        assert!(t_key("0".into()).is_err());
+        assert!(t_key("9".into()).is_err());
+        assert!(t_key("A1".into()).is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_t_touch_sensor() -> Result<(), Box<dyn Error>> {
+        let result = t_touch_sensor("E1 ,".into())?;
+        assert_eq!(*result.0, " ,");
+        assert_eq!(result.1, TouchSensor::E1);
+
+        let result = t_touch_sensor("C".into())?;
+        assert_eq!(*result.0, "");
+        assert_eq!(result.1, TouchSensor::C);
+
+        let result = t_touch_sensor("C1".into())?;
+        assert_eq!(*result.0, "");
+        assert_eq!(result.1, TouchSensor::C);
+
+        let result = t_touch_sensor("C2".into())?;
+        assert_eq!(*result.0, "");
+        assert_eq!(result.1, TouchSensor::C);
+
+        let result = t_touch_sensor("C3".into())?;
+        assert_eq!(*result.0, "3");
+        assert_eq!(result.1, TouchSensor::C);
+
+        assert!(t_touch_sensor(" C".into()).is_err());
+        assert!(t_touch_sensor("E,".into()).is_err());
+        assert!(t_touch_sensor("B9".into()).is_err());
+        assert!(t_touch_sensor("D0".into()).is_err());
+        assert!(t_touch_sensor("1".into()).is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_t_rest() -> Result<(), Box<dyn Error>> {
+        let result = t_rest(",".into())?;
+        assert_eq!(*result.0, "");
+        assert_eq!(*result.1, RawInsn::Rest);
+
+        let result = t_rest("\t\n, (123) {1}1,".into())?;
+        assert_eq!(*result.0, "(123) {1}1,");
+        assert_eq!(*result.1, RawInsn::Rest);
+
+        assert!(t_rest("(123) ,,,".into()).is_err());
+
+        Ok(())
+    }
+}
