@@ -2,7 +2,7 @@ mod context;
 
 pub use context::*;
 
-use crate::insn::{Key, SlideShape, TouchSensor};
+use crate::insn::{Key, SlideSegmentShape, TouchSensor};
 
 pub type TimestampInSeconds = f32;
 
@@ -61,5 +61,5 @@ pub struct MaterializedSlideTrack {
     pub start: Key,
     pub destination: Key,
     pub interim: Option<Key>,
-    pub shape: SlideShape,
+    pub shape: SlideSegmentShape,
 }

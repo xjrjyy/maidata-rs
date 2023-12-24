@@ -419,10 +419,10 @@ fn t_slide_len(s: NomSpan) -> PResult<SlideLength> {
 
 // FxE[len]
 // covers everything except FVRE
-macro_rules! define_slide_track {
+macro_rules! define_slide_segment {
     (@ $fn_name: ident, $recog: expr, $variant: ident) => {
         #[allow(unused_imports)]
-        fn $fn_name(s: NomSpan) -> PResult<SlideSingleTrack> {
+        fn $fn_name(s: NomSpan) -> PResult<SlideSegment> {
             use nom::character::complete::char;
             use nom::bytes::complete::tag;
 
@@ -432,43 +432,40 @@ macro_rules! define_slide_track {
             // TODO: can slide ends be breaks?
             let (s, destination) = t_tap_param(s)?;
             let (s, _) = multispace0(s)?;
-            let (s, len) = t_slide_len(s)?;
-            let (s, _) = multispace0(s)?;
 
             Ok((
                 s,
-                SlideSingleTrack::$variant(SlideSingleTrackParams {
+                SlideSegment::$variant(SlideSegmentParams {
                     destination,
                     interim: None,
-                    len,
                 }),
             ))
         }
     };
 
     ($fn_name: ident, char $ch: expr, $variant: ident) => {
-        define_slide_track!(@ $fn_name, char($ch), $variant);
+        define_slide_segment!(@ $fn_name, char($ch), $variant);
     };
 
     ($fn_name: ident, tag $tag: expr, $variant: ident) => {
-        define_slide_track!(@ $fn_name, tag($tag), $variant);
+        define_slide_segment!(@ $fn_name, tag($tag), $variant);
     };
 }
 
-define_slide_track!(t_slide_track_line, char '-', Line);
-define_slide_track!(t_slide_track_arc, char '^', Arc);
-define_slide_track!(t_slide_track_circ_left, char '<', CircumferenceLeft);
-define_slide_track!(t_slide_track_circ_right, char '>', CircumferenceRight);
-define_slide_track!(t_slide_track_v, char 'v', V);
-define_slide_track!(t_slide_track_p, char 'p', P);
-define_slide_track!(t_slide_track_q, char 'q', Q);
-define_slide_track!(t_slide_track_s, char 's', S);
-define_slide_track!(t_slide_track_z, char 'z', Z);
-define_slide_track!(t_slide_track_pp, tag "pp", Pp);
-define_slide_track!(t_slide_track_qq, tag "qq", Qq);
-define_slide_track!(t_slide_track_spread, char 'w', Spread);
+define_slide_segment!(t_slide_segment_line, char '-', Line);
+define_slide_segment!(t_slide_segment_arc, char '^', Arc);
+define_slide_segment!(t_slide_segment_circ_left, char '<', CircumferenceLeft);
+define_slide_segment!(t_slide_segment_circ_right, char '>', CircumferenceRight);
+define_slide_segment!(t_slide_segment_v, char 'v', V);
+define_slide_segment!(t_slide_segment_p, char 'p', P);
+define_slide_segment!(t_slide_segment_q, char 'q', Q);
+define_slide_segment!(t_slide_segment_s, char 's', S);
+define_slide_segment!(t_slide_segment_z, char 'z', Z);
+define_slide_segment!(t_slide_segment_pp, tag "pp", Pp);
+define_slide_segment!(t_slide_segment_qq, tag "qq", Qq);
+define_slide_segment!(t_slide_segment_spread, char 'w', Spread);
 
-fn t_slide_track_angle(s: NomSpan) -> PResult<SlideSingleTrack> {
+fn t_slide_segment_angle(s: NomSpan) -> PResult<SlideSegment> {
     use nom::character::complete::char;
 
     let (s, _) = multispace0(s)?;
@@ -479,38 +476,59 @@ fn t_slide_track_angle(s: NomSpan) -> PResult<SlideSingleTrack> {
     let (s, _) = multispace0(s)?;
     let (s, destination) = t_tap_param(s)?;
     let (s, _) = multispace0(s)?;
-    let (s, len) = t_slide_len(s)?;
-    let (s, _) = multispace0(s)?;
 
     Ok((
         s,
-        SlideSingleTrack::Angle(SlideSingleTrackParams {
+        SlideSegment::Angle(SlideSegmentParams {
             destination,
             interim: Some(interim),
-            len,
         }),
     ))
 }
 
-fn t_slide_track(s: NomSpan) -> PResult<SlideSingleTrack> {
+fn t_slide_segment(s: NomSpan) -> PResult<SlideSegment> {
     nom::branch::alt((
-        t_slide_track_line,
-        t_slide_track_arc,
-        t_slide_track_circ_left,
-        t_slide_track_circ_right,
-        t_slide_track_v,
-        t_slide_track_p,
-        t_slide_track_q,
-        t_slide_track_s,
-        t_slide_track_z,
-        t_slide_track_pp,
-        t_slide_track_qq,
-        t_slide_track_angle,
-        t_slide_track_spread,
+        t_slide_segment_line,
+        t_slide_segment_arc,
+        t_slide_segment_circ_left,
+        t_slide_segment_circ_right,
+        t_slide_segment_v,
+        t_slide_segment_p,
+        t_slide_segment_q,
+        t_slide_segment_s,
+        t_slide_segment_z,
+        t_slide_segment_pp,
+        t_slide_segment_qq,
+        t_slide_segment_angle,
+        t_slide_segment_spread,
     ))(s)
 }
 
-fn t_slide_sep_track(s: NomSpan) -> PResult<SlideSingleTrack> {
+fn t_slide_segment_group(s: NomSpan) -> PResult<SlideSegmentGroup> {
+    use nom::multi::many1;
+
+    let (s, _) = multispace0(s)?;
+    // TODO: track with different speed
+    let (s, segments) = many1(t_slide_segment)(s)?;
+    let (s, _) = multispace0(s)?;
+    let (s, len) = t_slide_len(s)?;
+    let (s, _) = multispace0(s)?;
+
+    Ok((s, SlideSegmentGroup { segments, len }))
+}
+
+fn t_slide_track(s: NomSpan) -> PResult<SlideTrack> {
+    use nom::multi::many1;
+
+    let (s, _) = multispace0(s)?;
+    // TODO: track with different speed
+    let (s, groups) = many1(t_slide_segment_group)(s)?;
+    let (s, _) = multispace0(s)?;
+
+    Ok((s, SlideTrack { groups }))
+}
+
+fn t_slide_sep_track(s: NomSpan) -> PResult<SlideTrack> {
     use nom::character::complete::char;
 
     let (s, _) = multispace0(s)?;

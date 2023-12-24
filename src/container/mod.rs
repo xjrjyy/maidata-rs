@@ -221,7 +221,8 @@ pub fn lex_maidata<'a>(x: &'a str) -> Maidata {
             "smsg" | "freemsg" => {
                 result.fallback_single_message = Some(v.to_owned());
             }
-            _ => println!("unimplemented property: {} = {}", k, v),
+            _ => (),
+            // _ => println!("unimplemented property: {} = {}", k, v),
         }
     }
 

@@ -197,66 +197,77 @@ pub struct TouchHoldParams {
 #[derive(Clone, PartialEq, Debug)]
 pub struct SlideParams {
     pub start: TapParams,
-    pub tracks: Vec<SlideSingleTrack>,
+    pub tracks: Vec<SlideTrack>,
 }
 
 #[derive(Clone, PartialEq, Debug)]
-pub enum SlideSingleTrack {
-    Line(SlideSingleTrackParams),
-    Arc(SlideSingleTrackParams), // ???
-    CircumferenceLeft(SlideSingleTrackParams),
-    CircumferenceRight(SlideSingleTrackParams),
-    V(SlideSingleTrackParams),
-    P(SlideSingleTrackParams),
-    Q(SlideSingleTrackParams),
-    S(SlideSingleTrackParams),
-    Z(SlideSingleTrackParams),
-    Pp(SlideSingleTrackParams),
-    Qq(SlideSingleTrackParams),
-    Angle(SlideSingleTrackParams),
-    Spread(SlideSingleTrackParams),
+pub struct SlideTrack {
+    pub groups: Vec<SlideSegmentGroup>,
 }
 
-impl SlideSingleTrack {
-    pub fn shape(&self) -> SlideShape {
+#[derive(Clone, PartialEq, Debug)]
+pub struct SlideSegmentGroup {
+    pub segments: Vec<SlideSegment>,
+    pub len: SlideLength,
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub enum SlideSegment {
+    Line(SlideSegmentParams),
+    Arc(SlideSegmentParams), // ???
+    CircumferenceLeft(SlideSegmentParams),
+    CircumferenceRight(SlideSegmentParams),
+    V(SlideSegmentParams),
+    P(SlideSegmentParams),
+    Q(SlideSegmentParams),
+    S(SlideSegmentParams),
+    Z(SlideSegmentParams),
+    Pp(SlideSegmentParams),
+    Qq(SlideSegmentParams),
+    Angle(SlideSegmentParams),
+    Spread(SlideSegmentParams),
+}
+
+impl SlideSegment {
+    pub fn shape(&self) -> SlideSegmentShape {
         match self {
-            Self::Line(_) => SlideShape::Line,
-            Self::Arc(_) => SlideShape::Arc,
-            Self::CircumferenceLeft(_) => SlideShape::CircumferenceLeft,
-            Self::CircumferenceRight(_) => SlideShape::CircumferenceRight,
-            Self::V(_) => SlideShape::V,
-            Self::P(_) => SlideShape::P,
-            Self::Q(_) => SlideShape::Q,
-            Self::S(_) => SlideShape::S,
-            Self::Z(_) => SlideShape::Z,
-            Self::Pp(_) => SlideShape::Pp,
-            Self::Qq(_) => SlideShape::Qq,
-            Self::Angle(_) => SlideShape::Angle,
-            Self::Spread(_) => SlideShape::Spread,
+            Self::Line(_) => SlideSegmentShape::Line,
+            Self::Arc(_) => SlideSegmentShape::Arc,
+            Self::CircumferenceLeft(_) => SlideSegmentShape::CircumferenceLeft,
+            Self::CircumferenceRight(_) => SlideSegmentShape::CircumferenceRight,
+            Self::V(_) => SlideSegmentShape::V,
+            Self::P(_) => SlideSegmentShape::P,
+            Self::Q(_) => SlideSegmentShape::Q,
+            Self::S(_) => SlideSegmentShape::S,
+            Self::Z(_) => SlideSegmentShape::Z,
+            Self::Pp(_) => SlideSegmentShape::Pp,
+            Self::Qq(_) => SlideSegmentShape::Qq,
+            Self::Angle(_) => SlideSegmentShape::Angle,
+            Self::Spread(_) => SlideSegmentShape::Spread,
         }
     }
 
-    pub fn params(&self) -> &SlideSingleTrackParams {
+    pub fn params(&self) -> &SlideSegmentParams {
         match self {
-            SlideSingleTrack::Line(p) => p,
-            SlideSingleTrack::Arc(p) => p,
-            SlideSingleTrack::CircumferenceLeft(p) => p,
-            SlideSingleTrack::CircumferenceRight(p) => p,
-            SlideSingleTrack::V(p) => p,
-            SlideSingleTrack::P(p) => p,
-            SlideSingleTrack::Q(p) => p,
-            SlideSingleTrack::S(p) => p,
-            SlideSingleTrack::Z(p) => p,
-            SlideSingleTrack::Pp(p) => p,
-            SlideSingleTrack::Qq(p) => p,
-            SlideSingleTrack::Angle(p) => p,
-            SlideSingleTrack::Spread(p) => p,
+            SlideSegment::Line(p) => p,
+            SlideSegment::Arc(p) => p,
+            SlideSegment::CircumferenceLeft(p) => p,
+            SlideSegment::CircumferenceRight(p) => p,
+            SlideSegment::V(p) => p,
+            SlideSegment::P(p) => p,
+            SlideSegment::Q(p) => p,
+            SlideSegment::S(p) => p,
+            SlideSegment::Z(p) => p,
+            SlideSegment::Pp(p) => p,
+            SlideSegment::Qq(p) => p,
+            SlideSegment::Angle(p) => p,
+            SlideSegment::Spread(p) => p,
         }
     }
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
-pub enum SlideShape {
+pub enum SlideSegmentShape {
     Line,
     Arc,
     CircumferenceLeft,
@@ -272,15 +283,14 @@ pub enum SlideShape {
     Spread,
 }
 
-impl From<SlideSingleTrack> for SlideShape {
-    fn from(x: SlideSingleTrack) -> Self {
+impl From<SlideSegment> for SlideSegmentShape {
+    fn from(x: SlideSegment) -> Self {
         x.shape()
     }
 }
 
 #[derive(Clone, PartialEq, Debug)]
-pub struct SlideSingleTrackParams {
+pub struct SlideSegmentParams {
     pub destination: TapParams,
     pub interim: Option<TapParams>,
-    pub len: SlideLength,
 }

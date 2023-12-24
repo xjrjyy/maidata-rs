@@ -37,7 +37,7 @@ Map definition instructions:
 * [x] SLIDE `FxE[length],`
     - [x] all track shapes `- ^ < > v p q s z pp qq V w`
     - [x] multiple tracks sharing one start `1-3[4:1]*-4[4:1]`
-    - [ ] chaining tracks `1-4q7-2[1:2]`
+    - [x] chaining tracks `1-4q7-2[1:2]`
     - [x] absolute duration specs
         - [x] `[#1.5]`
         - [x] `[160#2]`

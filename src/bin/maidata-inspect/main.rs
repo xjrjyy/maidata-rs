@@ -29,9 +29,9 @@ fn main() {
             diff.single_message().unwrap_or("<not set>")
         );
 
-        let mut mcx = maidata::materialize::MaterializationContext::with_offset(0.0);
-        let notes = mcx.materialize_insns(diff.iter_insns());
-        println!("  <{} notes materialized>", notes.len());
+        // let mut mcx = maidata::materialize::MaterializationContext::with_offset(0.0);
+        // let notes = mcx.materialize_insns(diff.iter_insns());
+        // println!("  <{} notes materialized>", notes.len());
 
         for insn in diff.iter_insns() {
             println!("{:?}", insn);
