@@ -34,6 +34,7 @@ Map definition instructions:
 * [x] HOLD `Bh[length],`
     - [x] normal duration spec `[x:y]`
     - [x] absolute duration spec `[#float]`
+    - [x] BREAK modifier `Bbh[length],`
 * [x] SLIDE `FxE[length],`
     - [x] all track shapes `- ^ < > v p q s z pp qq V w`
     - [x] multiple tracks sharing one start `1-3[4:1]*-4[4:1]`

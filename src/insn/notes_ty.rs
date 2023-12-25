@@ -182,6 +182,7 @@ pub struct TouchParams {
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct HoldParams {
+    pub is_break: bool,
     pub is_ex: bool,
     pub key: Key,
     pub len: Length,

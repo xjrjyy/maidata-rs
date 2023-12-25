@@ -33,6 +33,7 @@
 * [x] HOLD `Bh[length],`
     - [x] 通常时值形式 `[x:y]`
     - [x] 绝对长度时值形式 `[#float]`
+    - [x] BREAK 修饰符 `Bbh[length],`
 * [x] SLIDE `FxE[length],`
     - [x] 所有的星星轨迹形状 `- ^ < > v p q s z pp qq V w`
     - [x] 共享一个星星头的多条轨迹 `1-3[4:1]*-4[4:1]`
