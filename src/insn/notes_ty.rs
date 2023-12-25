@@ -203,13 +203,13 @@ pub struct SlideParams {
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct SlideTrack {
-    // TODO: Break Slide
-    // pub is_break: bool,
     pub groups: Vec<SlideSegmentGroup>,
 }
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct SlideSegmentGroup {
+    // it is slightly different from the official syntax
+    pub is_break: bool,
     pub segments: Vec<SlideSegment>,
     pub len: SlideLength,
 }

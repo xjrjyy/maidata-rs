@@ -511,16 +511,32 @@ fn t_slide_segment(s: NomSpan) -> PResult<SlideSegment> {
 }
 
 fn t_slide_segment_group(s: NomSpan) -> PResult<SlideSegmentGroup> {
+    use nom::character::complete::char;
+    use nom::combinator::opt;
     use nom::multi::many1;
 
     let (s, _) = multispace0(s)?;
     // TODO: track with different speed
     let (s, segments) = many1(t_slide_segment)(s)?;
     let (s, _) = multispace0(s)?;
+    let (s, is_break) = opt(char('b'))(s)?;
+    let (s, _) = multispace0(s)?;
     let (s, len) = t_slide_len(s)?;
     let (s, _) = multispace0(s)?;
+    let (s, is_break) = match is_break {
+        Some(_) => (s, is_break),
+        None => opt(char('b'))(s)?,
+    };
+    let (s, _) = multispace0(s)?;
 
-    Ok((s, SlideSegmentGroup { segments, len }))
+    Ok((
+        s,
+        SlideSegmentGroup {
+            is_break: is_break.is_some(),
+            segments,
+            len,
+        },
+    ))
 }
 
 fn t_slide_track(s: NomSpan) -> PResult<SlideTrack> {
