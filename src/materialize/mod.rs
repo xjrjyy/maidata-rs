@@ -8,7 +8,7 @@ pub type TimestampInSeconds = f32;
 
 pub type DurationInSeconds = f32;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub enum Note {
     Tap(MaterializedTap),
     Touch(MaterializedTouch),
@@ -54,14 +54,24 @@ pub struct MaterializedTouchHold {
     pub sensor: TouchSensor,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct MaterializedSlideTrack {
     pub ts: TimestampInSeconds,
     pub start_ts: TimestampInSeconds,
-    pub dur: DurationInSeconds,
     pub start: Key,
+    pub groups: Vec<MaterializedSlideSegmentGroup>,
+}
+
+#[derive(Clone, Debug)]
+pub struct MaterializedSlideSegmentGroup {
+    pub dur: DurationInSeconds,
+    pub segments: Vec<MaterializedSlideSegment>,
+    pub is_break: bool,
+}
+
+#[derive(Copy, Clone, Debug)]
+pub struct MaterializedSlideSegment {
     pub destination: Key,
     pub interim: Option<Key>,
     pub shape: SlideSegmentShape,
-    pub is_break: bool,
 }

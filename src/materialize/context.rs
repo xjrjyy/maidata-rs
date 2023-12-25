@@ -1,8 +1,9 @@
 use super::Note;
 use crate::insn;
 use crate::materialize::{
-    MaterializedHold, MaterializedSlideTrack, MaterializedTap, MaterializedTapShape,
-    MaterializedTouch, MaterializedTouchHold,
+    MaterializedHold, MaterializedSlideSegment, MaterializedSlideSegmentGroup,
+    MaterializedSlideTrack, MaterializedTap, MaterializedTapShape, MaterializedTouch,
+    MaterializedTouchHold,
 };
 
 pub struct MaterializationContext {
@@ -153,11 +154,10 @@ fn materialize_slide(ts: f32, beat_dur: f32, p: &insn::SlideParams) -> Vec<Note>
     let star = Note::Tap(materialize_tap_params(ts, &p.start, true));
     let start_key = p.start.key;
 
-    let tracks = p.tracks.iter().map(|track| {
-        Note::SlideTrack(materialize_slide_track_params(
-            ts, beat_dur, start_key, track,
-        ))
-    });
+    let tracks = p
+        .tracks
+        .iter()
+        .map(|track| Note::SlideTrack(materialize_slide_track(ts, beat_dur, start_key, track)));
 
     let mut result = Vec::with_capacity(tracks.len() + 1);
     result.push(star);
@@ -165,37 +165,63 @@ fn materialize_slide(ts: f32, beat_dur: f32, p: &insn::SlideParams) -> Vec<Note>
     result
 }
 
-// TODO: materialize slide track
-fn materialize_slide_track_params(
-    _ts: f32,
-    _beat_dur: f32,
-    _start_key: insn::Key,
-    _track: &insn::SlideTrack,
+fn materialize_slide_track(
+    ts: f32,
+    beat_dur: f32,
+    start_key: insn::Key,
+    track: &insn::SlideTrack,
 ) -> MaterializedSlideTrack {
-    todo!()
-    // let shape = track.shape();
-    // let params = track.params();
+    // in simai, stop time is actually encoded (overridden) in the duration spec of individual
+    // slide track
+    //
+    // take care of this, falling back to beat duration of current bpm
+    let stop_time = match track.groups.last().unwrap().len {
+        insn::SlideLength::Simple(_) => beat_dur,
+        insn::SlideLength::Custom(st, _) => stop_time_spec_to_dur(st),
+    };
 
-    // // in simai, stop time is actually encoded (overridden) in the duration spec of individual
-    // // slide track
-    // //
-    // // take care of this, falling back to beat duration of current bpm
-    // let stop_time = match params.len {
-    //     insn::SlideLength::Simple(_) => beat_dur,
-    //     insn::SlideLength::Custom(st, _) => stop_time_spec_to_dur(st),
-    // };
+    let start_ts = ts + stop_time;
 
-    // let start_ts = ts + stop_time;
+    let groups = track
+        .groups
+        .iter()
+        .map(|group| materialize_slide_segment_group(beat_dur, group))
+        .collect();
 
-    // MaterializedSlideTrack {
-    //     ts,
-    //     start_ts,
-    //     dur: materialize_duration(params.len.slide_duration(), beat_dur),
-    //     start: start_key,
-    //     destination: params.destination.key,
-    //     interim: params.interim.map(|x| x.key),
-    //     shape,
-    // }
+    MaterializedSlideTrack {
+        ts,
+        start_ts,
+        start: start_key,
+        groups,
+    }
+}
+
+fn materialize_slide_segment_group(
+    beat_dur: f32,
+    group: &insn::SlideSegmentGroup,
+) -> MaterializedSlideSegmentGroup {
+    let segments = group
+        .segments
+        .iter()
+        .map(|segment| materialize_slide_segment(segment))
+        .collect();
+
+    MaterializedSlideSegmentGroup {
+        dur: materialize_duration(group.len.slide_duration(), beat_dur),
+        segments,
+        is_break: group.is_break,
+    }
+}
+
+fn materialize_slide_segment(segment: &insn::SlideSegment) -> MaterializedSlideSegment {
+    let shape = segment.shape();
+    let params = segment.params();
+
+    MaterializedSlideSegment {
+        destination: params.destination,
+        interim: params.interim,
+        shape,
+    }
 }
 
 fn materialize_hold_params(ts: f32, beat_dur: f32, p: &insn::HoldParams) -> MaterializedHold {
@@ -227,7 +253,7 @@ fn materialize_duration(x: insn::Length, beat_dur: f32) -> f32 {
     }
 }
 
-fn _stop_time_spec_to_dur(x: insn::SlideStopTimeSpec) -> f32 {
+fn stop_time_spec_to_dur(x: insn::SlideStopTimeSpec) -> f32 {
     match x {
         insn::SlideStopTimeSpec::Bpm(override_bpm) => bpm_to_beat_dur(override_bpm),
         insn::SlideStopTimeSpec::Seconds(x) => x,
