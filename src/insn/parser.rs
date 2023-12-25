@@ -130,7 +130,7 @@ fn t_key(s: NomSpan) -> PResult<Key> {
     use nom::combinator::map;
     use nom::character::complete::one_of;
 
-    map(one_of("12345678"), |s| Key::try_from(s).unwrap())(s)
+    map(one_of("12345678"), |s| Key::try_from(s.to_digit(10).unwrap() as u8 - 1).unwrap())(s)
 }
 
 fn t_touch_sensor(s: NomSpan) -> PResult<TouchSensor> {
@@ -139,15 +139,16 @@ fn t_touch_sensor(s: NomSpan) -> PResult<TouchSensor> {
     use nom::sequence::separated_pair;
 
     let (s, touch_sensor) = nom::branch::alt((
-        separated_pair(one_of("ABDE"), multispace0, one_of("12345678")),
         separated_pair(
-            char('C'),
+            one_of("ABDE"),
             multispace0,
-            map(opt(one_of("12")), |x| x.unwrap_or('1')),
+            map(one_of("12345678"), |x| Some(x)),
         ),
+        separated_pair(char('C'), multispace0, map(opt(one_of("12")), |_| None)),
     ))(s)?;
 
-    Ok((s, TouchSensor::try_from(touch_sensor).unwrap()))
+    let index = touch_sensor.1.map(|x| x.to_digit(10).unwrap() as u8 - 1);
+    Ok((s, TouchSensor::try_from((touch_sensor.0, index)).unwrap()))
 }
 
 fn t_rest(s: NomSpan) -> PResult<SpRawInsn> {
@@ -670,7 +671,7 @@ mod tests {
     fn test_t_key() -> Result<(), Box<dyn Error>> {
         let result = t_key("1 ,".into())?;
         assert_eq!(*result.0, " ,");
-        assert_eq!(result.1, Key::K1);
+        assert_eq!(result.1, 0.try_into().unwrap());
 
         assert!(t_key(" 2".into()).is_err());
         assert!(t_key("0".into()).is_err());
@@ -684,23 +685,23 @@ mod tests {
     fn test_t_touch_sensor() -> Result<(), Box<dyn Error>> {
         let result = t_touch_sensor("E1 ,".into())?;
         assert_eq!(*result.0, " ,");
-        assert_eq!(result.1, TouchSensor::E1);
+        assert_eq!(result.1, ('E', Some(0)).try_into().unwrap());
 
         let result = t_touch_sensor("C".into())?;
         assert_eq!(*result.0, "");
-        assert_eq!(result.1, TouchSensor::C);
+        assert_eq!(result.1, ('C', None).try_into().unwrap());
 
         let result = t_touch_sensor("C1".into())?;
         assert_eq!(*result.0, "");
-        assert_eq!(result.1, TouchSensor::C);
+        assert_eq!(result.1, ('C', None).try_into().unwrap());
 
         let result = t_touch_sensor("C2".into())?;
         assert_eq!(*result.0, "");
-        assert_eq!(result.1, TouchSensor::C);
+        assert_eq!(result.1, ('C', None).try_into().unwrap());
 
         let result = t_touch_sensor("C3".into())?;
         assert_eq!(*result.0, "3");
-        assert_eq!(result.1, TouchSensor::C);
+        assert_eq!(result.1, ('C', None).try_into().unwrap());
 
         assert!(t_touch_sensor(" C".into()).is_err());
         assert!(t_touch_sensor("E,".into()).is_err());

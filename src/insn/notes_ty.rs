@@ -1,135 +1,81 @@
+pub trait Position {
+    fn group(self) -> Option<char>;
+    fn index(self) -> Option<u8>;
+}
+
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
-pub enum Key {
-    K1,
-    K2,
-    K3,
-    K4,
-    K5,
-    K6,
-    K7,
-    K8,
+pub struct Key {
+    index: u8,
+}
+
+impl Position for Key {
+    fn group(self) -> Option<char> {
+        None
+    }
+    fn index(self) -> Option<u8> {
+        Some(self.index)
+    }
 }
 
 #[derive(Clone, Debug)]
 pub enum KeyParseError {
-    InvalidKey(char),
+    InvalidKey(u8),
 }
 
-impl std::convert::TryFrom<char> for Key {
+impl std::convert::TryFrom<u8> for Key {
     type Error = KeyParseError;
 
-    fn try_from(x: char) -> Result<Self, Self::Error> {
+    fn try_from(x: u8) -> Result<Self, Self::Error> {
         match x {
-            '1' => Ok(Self::K1),
-            '2' => Ok(Self::K2),
-            '3' => Ok(Self::K3),
-            '4' => Ok(Self::K4),
-            '5' => Ok(Self::K5),
-            '6' => Ok(Self::K6),
-            '7' => Ok(Self::K7),
-            '8' => Ok(Self::K8),
-            _ => Err(KeyParseError::InvalidKey(x)),
+            0..=7 => Ok(Key { index: x }),
+            _ => Err(Self::Error::InvalidKey(x)),
         }
     }
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
-pub enum TouchSensor {
-    A1,
-    A2,
-    A3,
-    A4,
-    A5,
-    A6,
-    A7,
-    A8,
-    B1,
-    B2,
-    B3,
-    B4,
-    B5,
-    B6,
-    B7,
-    B8,
-    C,
-    D1,
-    D2,
-    D3,
-    D4,
-    D5,
-    D6,
-    D7,
-    D8,
-    E1,
-    E2,
-    E3,
-    E4,
-    E5,
-    E6,
-    E7,
-    E8,
+pub struct TouchSensor {
+    group: char,
+    index: Option<u8>,
+}
+
+impl Position for TouchSensor {
+    fn group(self) -> Option<char> {
+        Some(self.group)
+    }
+    fn index(self) -> Option<u8> {
+        self.index
+    }
 }
 
 #[derive(Clone, Debug)]
 pub enum TouchSensorParseError {
-    InvalidTouchSensor((char, char)),
+    InvalidTouchSensor(char, Option<u8>),
 }
 
-impl std::convert::TryFrom<(char, char)> for TouchSensor {
+impl std::convert::TryFrom<(char, Option<u8>)> for TouchSensor {
     type Error = TouchSensorParseError;
 
-    fn try_from(x: (char, char)) -> Result<Self, Self::Error> {
+    fn try_from(x: (char, Option<u8>)) -> Result<Self, Self::Error> {
         match x.0 {
-            'A' => match x.1 {
-                '1' => Ok(Self::A1),
-                '2' => Ok(Self::A2),
-                '3' => Ok(Self::A3),
-                '4' => Ok(Self::A4),
-                '5' => Ok(Self::A5),
-                '6' => Ok(Self::A6),
-                '7' => Ok(Self::A7),
-                '8' => Ok(Self::A8),
-                _ => Err(TouchSensorParseError::InvalidTouchSensor(x)),
-            },
-            'B' => match x.1 {
-                '1' => Ok(Self::B1),
-                '2' => Ok(Self::B2),
-                '3' => Ok(Self::B3),
-                '4' => Ok(Self::B4),
-                '5' => Ok(Self::B5),
-                '6' => Ok(Self::B6),
-                '7' => Ok(Self::B7),
-                '8' => Ok(Self::B8),
-                _ => Err(TouchSensorParseError::InvalidTouchSensor(x)),
+            'A' | 'B' | 'D' | 'E' => match x.1 {
+                Some(index) => match index {
+                    0..=7 => Ok(TouchSensor {
+                        group: x.0,
+                        index: Some(index),
+                    }),
+                    _ => Err(Self::Error::InvalidTouchSensor(x.0, x.1)),
+                },
+                _ => Err(Self::Error::InvalidTouchSensor(x.0, x.1)),
             },
             'C' => match x.1 {
-                '1' => Ok(Self::C),
-                '2' => Ok(Self::C),
-                _ => Err(TouchSensorParseError::InvalidTouchSensor(x)),
+                None => Ok(TouchSensor {
+                    group: x.0,
+                    index: None,
+                }),
+                _ => Err(Self::Error::InvalidTouchSensor(x.0, x.1)),
             },
-            'D' => match x.1 {
-                '1' => Ok(Self::D1),
-                '2' => Ok(Self::D2),
-                '3' => Ok(Self::D3),
-                '4' => Ok(Self::D4),
-                '5' => Ok(Self::D5),
-                '6' => Ok(Self::D6),
-                '7' => Ok(Self::D7),
-                '8' => Ok(Self::D8),
-                _ => Err(TouchSensorParseError::InvalidTouchSensor(x)),
-            },
-            'E' => match x.1 {
-                '1' => Ok(Self::E1),
-                '2' => Ok(Self::E2),
-                '3' => Ok(Self::E3),
-                '4' => Ok(Self::E4),
-                '5' => Ok(Self::E5),
-                '6' => Ok(Self::E6),
-                '7' => Ok(Self::E7),
-                '8' => Ok(Self::E8),
-                _ => Err(TouchSensorParseError::InvalidTouchSensor(x)),
-            },
-            _ => Err(TouchSensorParseError::InvalidTouchSensor(x)),
+            _ => Err(TouchSensorParseError::InvalidTouchSensor(x.0, x.1)),
         }
     }
 }
