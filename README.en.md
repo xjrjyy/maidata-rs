@@ -39,6 +39,7 @@ Map definition instructions:
     - [x] all track shapes `- ^ < > v p q s z pp qq V w`
     - [x] multiple tracks sharing one start `1-3[4:1]*-4[4:1]`
     - [x] chaining tracks `1-4q7-2[1:2]`
+    - [x] BREAK modifier `1-2-3[2:1]b`
     - [x] absolute duration specs
         - [x] `[#1.5]`
         - [x] `[160#2]`

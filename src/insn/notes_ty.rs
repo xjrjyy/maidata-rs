@@ -203,6 +203,8 @@ pub struct SlideParams {
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct SlideTrack {
+    // TODO: Break Slide
+    // pub is_break: bool,
     pub groups: Vec<SlideSegmentGroup>,
 }
 
@@ -292,6 +294,6 @@ impl From<SlideSegment> for SlideSegmentShape {
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct SlideSegmentParams {
-    pub destination: TapParams,
-    pub interim: Option<TapParams>,
+    pub destination: Key,
+    pub interim: Option<Key>,
 }

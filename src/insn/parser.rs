@@ -437,8 +437,7 @@ macro_rules! define_slide_segment {
             let (s, _) = multispace0(s)?;
             let (s, _) = $recog(s)?;
             let (s, _) = multispace0(s)?;
-            // TODO: can slide ends be breaks?
-            let (s, destination) = t_tap_param(s)?;
+            let (s, destination) = t_key(s)?;
             let (s, _) = multispace0(s)?;
 
             Ok((
@@ -479,10 +478,9 @@ fn t_slide_segment_angle(s: NomSpan) -> PResult<SlideSegment> {
     let (s, _) = multispace0(s)?;
     let (s, _) = char('V')(s)?;
     let (s, _) = multispace0(s)?;
-    // TODO: can these two be breaks?
-    let (s, interim) = t_tap_param(s)?;
+    let (s, interim) = t_key(s)?;
     let (s, _) = multispace0(s)?;
-    let (s, destination) = t_tap_param(s)?;
+    let (s, destination) = t_key(s)?;
     let (s, _) = multispace0(s)?;
 
     Ok((
