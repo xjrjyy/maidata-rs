@@ -29,25 +29,23 @@ Map definition instructions:
 * [x] TAP `B,`
     - [x] simplified BOTH/EACH TAP form (`16` `38` etc.; `123` and such are also allowed)
     - [x] BREAK modifier `Bb,`
-    - [x] EX NOTES modifier `Bx,`
+    - [x] EX NOTES modifier `Bx,` (3simai)
     - [ ] star-shape modifier `B$,` `Bb$, B$b,` `B$$,`
 * [x] HOLD `Bh[length],`
     - [x] normal duration spec `[x:y]`
     - [x] absolute duration spec `[#float]`
-    - [x] BREAK modifier `Bbh[length],`
+    - [x] BREAK modifier `Bbh[length],` (3simai)
 * [x] SLIDE `FxE[length],`
     - [x] all track shapes `- ^ < > v p q s z pp qq V w`
     - [x] multiple tracks sharing one start `1-3[4:1]*-4[4:1]`
-    - [x] chaining tracks `1-4q7-2[1:2]`
-    - [x] BREAK modifier `1-2-3[2:1]b`
+    - [x] chaining tracks `1-4q7-2[1:2]` (3simai)
+    - [x] BREAK modifier `1-2-3[2:1]b` (3simai)
     - [x] absolute duration specs
         - [x] `[#1.5]`
         - [x] `[160#2]`
         - [x] `[3##1.5]`
-* [x] TOUCH `B,`
+* [x] TOUCH `B,` (3simai)
     - [x] FIREWORK modifier `Bf,`
-* [x] TOUCH HOLD `Bh[length],`
+* [x] TOUCH HOLD `Bh[length],` (3simai)
 * [x] BOTH/EACH `note/note,`
     - [x] arbitrary number of concurrent notes allowed (3simai)
-
-maimai DX (3simai) features are largely currently not implemented.

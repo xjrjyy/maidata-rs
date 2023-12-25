@@ -28,25 +28,23 @@
 * [x] TAP `B,`
     - [x] BOTH/EACH TAP 简化形式 (`16` `38` etc.; `123` 之类的多押也允许)
     - [x] BREAK 修饰符 `Bb,`
-    - [x] EX NOTES 修饰符 `Bx,`
+    - [x] EX NOTES 修饰符 `Bx,` (3simai)
     - [ ] 强制星星形状修饰符 `B$,` `Bb$, B$b,` `B$$,`
 * [x] HOLD `Bh[length],`
     - [x] 通常时值形式 `[x:y]`
     - [x] 绝对长度时值形式 `[#float]`
-    - [x] BREAK 修饰符 `Bbh[length],`
+    - [x] BREAK 修饰符 `Bbh[length],` (3simai)
 * [x] SLIDE `FxE[length],`
     - [x] 所有的星星轨迹形状 `- ^ < > v p q s z pp qq V w`
     - [x] 共享一个星星头的多条轨迹 `1-3[4:1]*-4[4:1]`
-    - [x] 链接星星 `1-4q7-2[1:2]`
-    - [x] BREAK 修饰符 `1-2-3[2:1]b`
+    - [x] 链接星星 `1-4q7-2[1:2]` (3simai)
+    - [x] BREAK 修饰符 `1-2-3[2:1]b` (3simai)
     - [x] 绝对长度时值形式
         - [x] `[#1.5]`
         - [x] `[160#2]`
         - [x] `[3##1.5]`
-* [x] TOUCH `B,`
+* [x] TOUCH `B,` (3simai)
     - [x] FIREWORK 修饰符 `Bf,`
-* [x] TOUCH HOLD `Bh[length],`
+* [x] TOUCH HOLD `Bh[length],` (3simai)
 * [x] BOTH/EACH `note/note,`
     - [x] 支持任意个数的多押 (3simai)
-
-maimai DX (3simai) 特性基本都没做。
