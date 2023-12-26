@@ -1,18 +1,18 @@
 pub trait Position {
-    fn group(self) -> Option<char>;
-    fn index(self) -> Option<u8>;
+    fn group(&self) -> Option<char>;
+    fn index(&self) -> Option<u8>;
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct Key {
     index: u8,
 }
 
 impl Position for Key {
-    fn group(self) -> Option<char> {
+    fn group(&self) -> Option<char> {
         None
     }
-    fn index(self) -> Option<u8> {
+    fn index(&self) -> Option<u8> {
         Some(self.index)
     }
 }
@@ -33,17 +33,17 @@ impl std::convert::TryFrom<u8> for Key {
     }
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct TouchSensor {
     group: char,
     index: Option<u8>,
 }
 
 impl Position for TouchSensor {
-    fn group(self) -> Option<char> {
+    fn group(&self) -> Option<char> {
         Some(self.group)
     }
-    fn index(self) -> Option<u8> {
+    fn index(&self) -> Option<u8> {
         self.index
     }
 }
@@ -160,7 +160,7 @@ pub struct SlideSegmentGroup {
     pub len: SlideLength,
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
 pub enum SlideSegment {
     Line(SlideSegmentParams),
     Arc(SlideSegmentParams), // ???
@@ -238,7 +238,7 @@ impl From<SlideSegment> for SlideSegmentShape {
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
 pub struct SlideSegmentParams {
     pub destination: Key,
     pub interim: Option<Key>,
