@@ -407,7 +407,7 @@ fn t_slide_len_custom(s: NomSpan) -> PResult<SlideLength> {
     let (s, _) = char(']')(s)?;
     let (s, _) = multispace0(s)?;
 
-    // following cases are possible in this combinator:
+    // TODO: following cases are possible in this combinator:
     //
     // - `[160#8:3]` -> stop time=(as in BPM 160) len=8:3
     // - `[3##1.5]` -> stop time=(absolute 3s) len=1.5s

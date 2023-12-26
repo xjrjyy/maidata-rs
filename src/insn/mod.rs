@@ -15,6 +15,18 @@ pub enum RawNoteInsn {
     Slide(SlideParams),
 }
 
+impl std::fmt::Display for RawNoteInsn {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Tap(params) => write!(f, "{}", params),
+            Self::Touch(params) => write!(f, "{}", params),
+            Self::Hold(params) => write!(f, "{}", params),
+            Self::TouchHold(params) => write!(f, "{}", params),
+            Self::Slide(params) => write!(f, "{}", params),
+        }
+    }
+}
+
 #[derive(Clone, PartialEq, Debug)]
 pub enum RawInsn {
     Bpm(BpmParams),
