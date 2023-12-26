@@ -1,3 +1,24 @@
+use maidata::insn::RawInsn;
+use std::ops::Deref;
+
+fn print_raw_insn(insn: &RawInsn) {
+    match insn {
+        RawInsn::Bpm(params) => print!("({})", params),
+        RawInsn::BeatDivisor(params) => print!("{{{}}}", params),
+        RawInsn::Rest => print!(","),
+        RawInsn::Note(note) => print!("{},", note.deref()),
+        RawInsn::NoteBundle(note_bundle) => print!(
+            "{},",
+            note_bundle
+                .iter()
+                .map(|x| format!("{}", x.deref()))
+                .collect::<Vec<_>>()
+                .join("/")
+        ),
+        RawInsn::EndMark => print!("E"),
+    }
+}
+
 fn main() {
     let filename = std::env::args()
         .nth(1)
@@ -29,12 +50,12 @@ fn main() {
             diff.single_message().unwrap_or("<not set>")
         );
 
-        // let mut mcx = maidata::materialize::MaterializationContext::with_offset(0.0);
-        // let notes = mcx.materialize_insns(diff.iter_insns());
-        // println!("  <{} notes materialized>", notes.len());
+        let mut mcx = maidata::materialize::MaterializationContext::with_offset(0.0);
+        let notes = mcx.materialize_insns(diff.iter_insns());
+        println!("  <{} notes materialized>", notes.len());
 
         for insn in diff.iter_insns() {
-            println!("{:?}", insn);
+            print_raw_insn(insn.deref());
         }
     }
 }

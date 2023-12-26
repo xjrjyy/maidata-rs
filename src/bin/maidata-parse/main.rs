@@ -1,7 +1,10 @@
+use std::time::Instant;
 use walkdir::WalkDir;
 
 fn main() {
     let dir = std::env::args().nth(1).expect("usage: $0 <path/to/charts>");
+
+    let start = Instant::now();
 
     for entry in WalkDir::new(dir)
         .into_iter()
@@ -13,6 +16,9 @@ fn main() {
             parse_maidata(entry.path());
         }
     }
+
+    let duration = start.elapsed();
+    println!("Time: {:?}", duration);
 }
 
 fn parse_maidata<P: AsRef<std::path::Path>>(path: P) {

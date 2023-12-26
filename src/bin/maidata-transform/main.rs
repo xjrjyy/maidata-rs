@@ -1,0 +1,136 @@
+use maidata::container::AssociatedBeatmapData;
+use maidata::insn::RawInsn;
+use maidata::transform::{
+    normalize::normalize_note,
+    transform::{transform_note, Transformer},
+    NormalizedNote,
+};
+use maidata::Level;
+use std::collections::HashMap;
+use std::ops::Deref;
+use std::time::Instant;
+use walkdir::WalkDir;
+
+fn minimal(group: &Vec<Vec<NormalizedNote>>) -> Vec<Vec<NormalizedNote>> {
+    let mut result = group.clone();
+    for rotation in 0..8 {
+        for flip in [false, true] {
+            result = result.min(
+                group
+                    .iter()
+                    .map(|bundle| {
+                        bundle
+                            .iter()
+                            .map(|x| transform_note(x, Transformer { rotation, flip }))
+                            .collect()
+                    })
+                    .collect::<Vec<_>>(),
+            );
+        }
+    }
+    result
+}
+
+fn main() {
+    let dir = std::env::args().nth(1).expect("usage: $0 <path/to/charts>");
+
+    let start = Instant::now();
+
+    const K: usize = 1;
+
+    let mut groups = Vec::new();
+    for entry in WalkDir::new(dir)
+        .into_iter()
+        .filter_map(Result::ok)
+        .filter(|e| !e.file_type().is_dir())
+    {
+        if entry.file_name() == "maidata.txt" {
+            let charts = parse_maidata(entry.path(), |diff| match diff.level() {
+                Some(Level::Normal(level)) => 11 <= level && level <= 13,
+                Some(Level::Plus(level)) => 11 <= level && level <= 13,
+                Some(Level::Char(_)) => false,
+                None => false,
+            });
+            for chart in charts.iter() {
+                if chart.len() >= K {
+                    for i in 0..chart.len() - K {
+                        let group = chart[i..i + K].to_vec();
+                        groups.push(minimal(&group));
+                    }
+                } else {
+                    println!("Warning!");
+                }
+            }
+        }
+    }
+
+    println!("{} groups", groups.len());
+
+    let mut group_map = HashMap::with_capacity(groups.len());
+    for group in groups.iter() {
+        let count = group_map.entry(group).or_insert(0);
+        *count += 1;
+    }
+
+    let mut result: Vec<_> = group_map.iter().map(|(&k, &v)| (v, k.clone())).collect();
+    result.sort_by(|&(k1, _), &(k2, _)| k2.cmp(&k1));
+    for (k, v) in result.iter().take(2000) {
+        print!("{}: ", k);
+        for bundle in v.iter() {
+            for i in 0..bundle.len() {
+                if i > 0 {
+                    print!("/");
+                }
+                print!("{}", bundle[i]);
+            }
+            print!(",");
+        }
+        println!("");
+    }
+
+    let duration = start.elapsed();
+    println!("Time: {:?}", duration);
+}
+
+// TODO: Note Bundle
+fn parse_maidata<P: AsRef<std::path::Path>, F>(path: P, f: F) -> Vec<Vec<Vec<NormalizedNote>>>
+where
+    F: Fn(&AssociatedBeatmapData) -> bool,
+{
+    let content = read_file(path);
+    let maidata = maidata::container::lex_maidata(&content);
+
+    maidata
+        .iter_difficulties()
+        .filter_map(|diff| {
+            if !f(&diff) {
+                return None;
+            }
+            let notes: Vec<_> = diff
+                .iter_insns()
+                .filter_map(|insn| match insn.deref() {
+                    RawInsn::Note(insn) => Some(vec![normalize_note(insn.deref()).unwrap()]),
+                    RawInsn::NoteBundle(insn) => {
+                        let mut result: Vec<_> = insn
+                            .deref()
+                            .iter()
+                            .map(|x| normalize_note(x.deref()).unwrap())
+                            .collect();
+                        result.sort();
+                        Some(result)
+                    }
+                    _ => None,
+                })
+                .collect();
+            match notes.is_empty() {
+                true => None,
+                false => Some(notes),
+            }
+        })
+        .collect()
+}
+
+fn read_file<P: AsRef<std::path::Path>>(path: P) -> String {
+    let content = std::fs::read(path.as_ref()).expect("file reading failed");
+    String::from_utf8(content).expect("decoding file content as utf-8 failed")
+}

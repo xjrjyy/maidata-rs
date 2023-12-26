@@ -2,6 +2,7 @@ pub mod container;
 pub mod insn;
 pub mod materialize;
 mod span;
+pub mod transform;
 
 pub use span::*;
 
