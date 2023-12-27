@@ -1,11 +1,12 @@
 use super::*;
 
-#[cfg_attr(rustfmt, rustfmt_skip)]
 pub fn t_key(s: NomSpan) -> PResult<Key> {
-    use nom::combinator::map;
     use nom::character::complete::one_of;
+    use nom::combinator::map;
 
-    map(one_of("12345678"), |s| Key::try_from(s.to_digit(10).unwrap() as u8 - 1).unwrap())(s)
+    map(one_of("12345678"), |s| {
+        Key::try_from(s.to_digit(10).unwrap() as u8 - 1).unwrap()
+    })(s)
 }
 
 pub fn t_touch_sensor(s: NomSpan) -> PResult<TouchSensor> {
