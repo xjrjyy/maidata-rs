@@ -1,9 +1,9 @@
 mod directives_ty;
-mod notes_ty;
+mod note_ty;
 mod parser;
 
 pub use directives_ty::*;
-pub use notes_ty::*;
+pub use note_ty::*;
 pub(crate) use parser::parse_maidata_insns;
 
 #[derive(Clone, PartialEq, Debug)]
