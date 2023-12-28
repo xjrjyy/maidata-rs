@@ -503,4 +503,60 @@ mod tests {
             assert!(result.is_err());
         }};
     }
+
+    #[test]
+    fn test_t_tap_param() -> Result<(), Box<dyn Error>> {
+        assert_eq!(
+            test_parser_ok!(t_tap_param, " 1 ", ","),
+            TapParams {
+                is_break: false,
+                is_ex: false,
+                key: 0.try_into().unwrap(),
+            }
+        );
+        assert_eq!(
+            test_parser_ok!(t_tap_param, "1b x", ""),
+            TapParams {
+                is_break: true,
+                is_ex: true,
+                key: 0.try_into().unwrap(),
+            }
+        );
+        assert_eq!(
+            test_parser_ok!(t_tap_param, "1 x", ""),
+            TapParams {
+                is_break: false,
+                is_ex: true,
+                key: 0.try_into().unwrap(),
+            }
+        );
+
+        test_parser_err!(t_tap_param, "");
+        test_parser_err!(t_tap_param, "x1");
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_t_touch_param() -> Result<(), Box<dyn Error>> {
+        assert_eq!(
+            test_parser_ok!(t_touch_param, " B7 ", ","),
+            TouchParams {
+                is_firework: false,
+                sensor: ('B', Some(6)).try_into().unwrap(),
+            }
+        );
+        assert_eq!(
+            test_parser_ok!(t_touch_param, "C 1f", ""),
+            TouchParams {
+                is_firework: true,
+                sensor: ('C', None).try_into().unwrap(),
+            }
+        );
+
+        test_parser_err!(t_touch_param, "");
+        test_parser_err!(t_touch_param, "Af2");
+
+        Ok(())
+    }
 }
