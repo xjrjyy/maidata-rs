@@ -74,6 +74,13 @@ fn main() {
 
     let mut result: Vec<_> = group_map.iter().map(|(&k, &v)| (v, k.clone())).collect();
     result.sort_by(|&(k1, _), &(k2, _)| k2.cmp(&k1));
+    result.retain(|(_, group)| {
+        group.iter().any(|bundle| {
+            bundle
+                .iter()
+                .any(|note| matches!(note, NormalizedNote::Slide(_)))
+        })
+    });
     for (k, v) in result.iter().take(2000) {
         print!("{}: ", k);
         for bundle in v.iter() {
