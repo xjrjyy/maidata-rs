@@ -31,8 +31,7 @@ impl MaterializationContext {
     ) -> Vec<Note> {
         insns
             .into_iter()
-            .map(|insn| self.materialize_raw_insn(insn))
-            .flatten()
+            .flat_map(|insn| self.materialize_raw_insn(insn))
             .collect()
     }
 
@@ -72,8 +71,7 @@ impl MaterializationContext {
                 let ts = self.advance_time();
                 raw_notes
                     .iter()
-                    .map(|raw_note| self.materialize_raw_note(ts, raw_note))
-                    .flatten()
+                    .flat_map(|raw_note| self.materialize_raw_note(ts, raw_note))
                     .collect()
             }
         }
@@ -203,7 +201,7 @@ fn materialize_slide_segment_group(
     let segments = group
         .segments
         .iter()
-        .map(|segment| materialize_slide_segment(segment))
+        .map(materialize_slide_segment)
         .collect();
 
     MaterializedSlideSegmentGroup {

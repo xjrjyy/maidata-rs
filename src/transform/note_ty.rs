@@ -121,7 +121,7 @@ impl std::fmt::Display for NormalizedSlideSegment {
             Self::Line(param) => write!(f, "-{}", param.destination),
             Self::Clockwise(param) => {
                 let end_index = param.destination.index().unwrap();
-                let upper = end_index < 2 || end_index >= 6;
+                let upper = !(2..6).contains(&end_index);
                 write!(
                     f,
                     "{}{}",

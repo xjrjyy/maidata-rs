@@ -9,7 +9,7 @@ pub(crate) struct KeyVal<'a> {
     pub val: NomSpan<'a>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Maidata {
     title: String,
     artist: String,
@@ -22,20 +22,6 @@ pub struct Maidata {
     star_bpm: Option<f32>,
 
     difficulties: Vec<BeatmapData>,
-}
-
-impl Default for Maidata {
-    fn default() -> Self {
-        Self {
-            title: String::default(),
-            artist: String::default(),
-            fallback_designer: None,
-            fallback_offset: None,
-            fallback_single_message: None,
-            star_bpm: None,
-            difficulties: vec![],
-        }
-    }
 }
 
 impl Maidata {
@@ -102,7 +88,7 @@ impl<'a> AssociatedBeatmapData<'a> {
     }
 
     pub fn level(&self) -> Option<crate::Level> {
-        self.map.level.clone()
+        self.map.level
     }
 
     pub fn iter_insns(&self) -> impl Iterator<Item = &crate::Sp<crate::insn::RawInsn>> {
@@ -117,11 +103,11 @@ impl<'a> AssociatedBeatmapData<'a> {
     }
 }
 
-pub fn lex_maidata<'a>(x: &'a str) -> Maidata {
+pub fn lex_maidata(x: &str) -> Maidata {
     let input = NomSpan::new(x);
     let output = lex_maidata_inner(input);
 
-    let kvs = output.ok().expect("parse maidata failed").1;
+    let kvs = output.expect("parse maidata failed").1;
 
     let mut result = Maidata::default();
     let mut diff_map: HashMap<crate::Difficulty, BeatmapData> = HashMap::new();
@@ -200,10 +186,10 @@ pub fn lex_maidata<'a>(x: &'a str) -> Maidata {
         // global variables
         match k {
             "title" => {
-                result.title = v.to_owned();
+                v.clone_into(&mut result.title);
             }
             "artist" => {
-                result.artist = v.to_owned();
+                v.clone_into(&mut result.artist);
             }
             "first" => {
                 match v.parse() {
@@ -229,7 +215,7 @@ pub fn lex_maidata<'a>(x: &'a str) -> Maidata {
     // put parsed difficulties into result
     result
         .difficulties
-        .extend(diff_map.into_iter().map(|(_, data)| data));
+        .extend(diff_map.into_values());
 
     result
 }
@@ -286,7 +272,7 @@ fn num_rightmost_whitespaces<S: AsRef<str>>(x: S) -> usize {
 
     // only work with bytes for now, simplifies things quite a bit
     let x = x.as_ref().as_bytes();
-    if x.len() == 0 {
+    if x.is_empty() {
         return 0;
     }
 

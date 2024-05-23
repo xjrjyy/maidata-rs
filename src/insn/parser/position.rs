@@ -18,7 +18,7 @@ pub fn t_touch_sensor(s: NomSpan) -> PResult<TouchSensor> {
         separated_pair(
             one_of("ABDE"),
             multispace0,
-            map(one_of("12345678"), |x| Some(x)),
+            map(one_of("12345678"), Some),
         ),
         separated_pair(char('C'), multispace0, map(opt(one_of("12")), |_| None)),
     ))(s)?;

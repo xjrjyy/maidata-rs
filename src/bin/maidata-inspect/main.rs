@@ -23,7 +23,7 @@ fn main() {
     let filename = std::env::args()
         .nth(1)
         .expect("usage: $0 <path/to/maidata.txt>");
-    let content = read_file(&filename);
+    let content = read_file(filename);
     let maidata = maidata::container::lex_maidata(&content);
 
     println!("title = {}", maidata.title());

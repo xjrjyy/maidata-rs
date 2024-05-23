@@ -46,8 +46,8 @@ fn main() {
     {
         if entry.file_name() == "maidata.txt" {
             let charts = parse_maidata(entry.path(), |diff| match diff.level() {
-                Some(Level::Normal(level)) => 11 <= level && level <= 13,
-                Some(Level::Plus(level)) => 11 <= level && level <= 13,
+                Some(Level::Normal(level)) => (11..=13).contains(&level),
+                Some(Level::Plus(level)) => (11..=13).contains(&level),
                 Some(Level::Char(_)) => false,
                 None => false,
             });
@@ -85,7 +85,7 @@ fn main() {
             }
             print!(",");
         }
-        println!("");
+        println!();
     }
 
     let duration = start.elapsed();

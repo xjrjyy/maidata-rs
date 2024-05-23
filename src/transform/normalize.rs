@@ -119,7 +119,6 @@ pub fn normalize_slide_segment_group(
             start = segment.params().destination;
             result
         })
-        .into_iter()
         .collect::<Option<Vec<_>>>()
         .map(|segments| NormalizedSlideSegmentGroup { segments })
 }
@@ -135,7 +134,6 @@ pub fn normalize_slide_track(start: Key, track: &SlideTrack) -> Option<Normalize
             start = group.segments.last().unwrap().params().destination;
             result
         })
-        .into_iter()
         .collect::<Option<Vec<_>>>()
         .map(|groups| NormalizedSlideTrack { groups })
 }
@@ -160,7 +158,6 @@ pub fn normalize_note(note: &RawNoteInsn) -> Option<NormalizedNote> {
             .tracks
             .iter()
             .map(|track| normalize_slide_track(params.start.key, track))
-            .into_iter()
             .collect::<Option<Vec<_>>>()
             .map(|mut tracks| {
                 tracks.sort();
