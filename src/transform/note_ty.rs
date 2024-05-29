@@ -158,7 +158,12 @@ impl std::fmt::Display for NormalizedSlideSegment {
                     param.destination
                 )
             }
-            Self::Angle(param) => write!(f, "V{}{}", param.interim.unwrap(), param.destination),
+            Self::Angle(param) => {
+                let interim =
+                    (param.start.index().unwrap() + if param.flip.unwrap() { 2 } else { 6 }) % 8;
+                let interim = Key::try_from(interim).unwrap();
+                write!(f, "V{}{}", interim, param.destination)
+            }
             Self::Spread(param) => write!(f, "w{}", param.destination),
         }
     }
@@ -194,14 +199,14 @@ impl NormalizedSlideSegment {
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum NormalizedSlideSegmentShape {
-    Line,
-    Clockwise,
-    V,
-    PQ,
-    SZ,
-    PpQq,
-    Angle,
-    Spread,
+    Line,      // -
+    Clockwise, // <>^ counterclockwise, clockwise(flip)
+    V,         // v
+    PQ,        // p, q(filp)
+    SZ,        // s, z(filp)
+    PpQq,      // pp, qq(filp)
+    Angle,     // 1V75, 1V35(flip)
+    Spread,    // w
 }
 
 impl From<NormalizedSlideSegment> for NormalizedSlideSegmentShape {
@@ -212,8 +217,8 @@ impl From<NormalizedSlideSegment> for NormalizedSlideSegmentShape {
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct NormalizedSlideSegmentParams {
+    pub start: Key,
     pub destination: Key,
-    pub interim: Option<Key>,
     pub flip: Option<bool>,
 }
 

@@ -80,8 +80,8 @@ impl Transformable for NormalizedTouchHoldParams {
 impl Transformable for NormalizedSlideSegment {
     fn transform(&self, transformer: Transformer) -> Self {
         let params = NormalizedSlideSegmentParams {
+            start: self.params().start.transform(transformer),
             destination: self.params().destination.transform(transformer),
-            interim: self.params().interim.map(|x| x.transform(transformer)),
             flip: self.params().flip.map(|x| x ^ transformer.flip),
         };
         match self {
