@@ -53,7 +53,7 @@ fn main() {
             });
             for chart in charts.iter() {
                 if chart.len() >= K {
-                    for i in 0..chart.len() - K {
+                    for i in 0..chart.len() - K + 1 {
                         let group = chart[i..i + K].to_vec();
                         groups.push(minimal(&group));
                     }
