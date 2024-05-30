@@ -5,6 +5,7 @@ use crate::materialize::{
     MaterializedSlideTrack, MaterializedTap, MaterializedTapShape, MaterializedTouch,
     MaterializedTouchHold,
 };
+use crate::transform;
 
 pub struct MaterializationContext {
     // TODO: is slides' default stop time really independent of BPM changes?
@@ -180,28 +181,40 @@ fn materialize_slide_track(
 
     let start_ts = ts + stop_time;
 
+    let mut start_key = start_key;
     let groups = track
         .groups
         .iter()
-        .map(|group| materialize_slide_segment_group(beat_dur, group))
+        .map(|group| {
+            let result = materialize_slide_segment_group(beat_dur, start_key, group);
+            // TODO: trait for slide end position
+            start_key = group.segments.last().unwrap().params().destination;
+            result
+        })
         .collect();
 
     MaterializedSlideTrack {
         ts,
         start_ts,
-        start: start_key,
         groups,
     }
 }
 
 fn materialize_slide_segment_group(
     beat_dur: f32,
+    start: insn::Key,
     group: &insn::SlideSegmentGroup,
 ) -> MaterializedSlideSegmentGroup {
+    let mut start = start;
     let segments = group
         .segments
         .iter()
-        .map(materialize_slide_segment)
+        .map(|segment| {
+            let result = materialize_slide_segment(start, segment);
+            // TODO: trait for slide end position
+            start = segment.params().destination;
+            result
+        })
         .collect();
 
     MaterializedSlideSegmentGroup {
@@ -211,13 +224,19 @@ fn materialize_slide_segment_group(
     }
 }
 
-fn materialize_slide_segment(segment: &insn::SlideSegment) -> MaterializedSlideSegment {
+fn materialize_slide_segment(
+    start: insn::Key,
+    segment: &insn::SlideSegment,
+) -> MaterializedSlideSegment {
+    // TODO: handle normalization error
+    let segment = transform::normalize::normalize_slide_segment(start, segment).unwrap();
     let shape = segment.shape();
     let params = segment.params();
 
     MaterializedSlideSegment {
+        start: params.start,
         destination: params.destination,
-        interim: params.interim,
+        flip: params.flip,
         shape,
     }
 }

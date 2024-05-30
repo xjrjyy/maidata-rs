@@ -2,7 +2,8 @@ mod context;
 
 pub use context::*;
 
-use crate::insn::{Key, SlideSegmentShape, TouchSensor};
+use crate::insn::{Key, TouchSensor};
+use crate::transform::NormalizedSlideSegmentShape;
 
 pub type TimestampInSeconds = f32;
 
@@ -58,7 +59,6 @@ pub struct MaterializedTouchHold {
 pub struct MaterializedSlideTrack {
     pub ts: TimestampInSeconds,
     pub start_ts: TimestampInSeconds,
-    pub start: Key,
     pub groups: Vec<MaterializedSlideSegmentGroup>,
 }
 
@@ -71,7 +71,8 @@ pub struct MaterializedSlideSegmentGroup {
 
 #[derive(Copy, Clone, Debug)]
 pub struct MaterializedSlideSegment {
+    pub start: Key,
     pub destination: Key,
-    pub interim: Option<Key>,
-    pub shape: SlideSegmentShape,
+    pub flip: Option<bool>,
+    pub shape: NormalizedSlideSegmentShape,
 }

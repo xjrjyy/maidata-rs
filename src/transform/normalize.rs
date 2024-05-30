@@ -9,7 +9,7 @@ fn key_clockwise_distance(start: Key, end: Key) -> u8 {
     (end.index().unwrap() + 8 - start.index().unwrap()) % 8
 }
 
-fn slide_segment_is_clockwise(start: Key, segment: SlideSegment) -> Option<bool> {
+fn slide_segment_is_clockwise(start: Key, segment: &SlideSegment) -> Option<bool> {
     let upper_half = start.index().unwrap() < 2 || start.index().unwrap() >= 6;
     match segment {
         SlideSegment::Arc(params) => match key_clockwise_distance(start, params.destination) {
@@ -41,7 +41,7 @@ fn slide_segment_is_clockwise(start: Key, segment: SlideSegment) -> Option<bool>
 
 pub fn normalize_slide_segment(
     start: Key,
-    segment: SlideSegment,
+    segment: &SlideSegment,
 ) -> Option<NormalizedSlideSegment> {
     let distance = key_clockwise_distance(start, segment.params().destination);
     let normalized_params = NormalizedSlideSegmentParams {
@@ -55,7 +55,7 @@ pub fn normalize_slide_segment(
             SlideSegment::P(_) | SlideSegment::S(_) | SlideSegment::Pp(_) => Some(false),
             SlideSegment::Q(_) | SlideSegment::Z(_) | SlideSegment::Qq(_) => Some(true),
             SlideSegment::Angle(params) => {
-                Some(params.interim.unwrap().index().unwrap() - start.index().unwrap() == 2)
+                Some((params.interim.unwrap().index().unwrap() + 8 - start.index().unwrap()) % 8 == 2)
             }
         },
     };
@@ -109,11 +109,8 @@ pub fn normalize_slide_segment_group(
     group
         .segments
         .iter()
-        .map(|&segment| {
+        .map(|segment| {
             let result = normalize_slide_segment(start, segment);
-            if result.is_none() {
-                dbg!(start, group);
-            }
             // TODO: trait for slide end position
             start = segment.params().destination;
             result
@@ -197,7 +194,7 @@ mod tests {
         }
         macro_rules! normalize {
             ($variant: ident, $start: expr, $end: expr) => {
-                normalize_slide_segment($start.try_into().unwrap(), segment!($variant, $end))
+                normalize_slide_segment($start.try_into().unwrap(), &segment!($variant, $end))
             };
         }
 
@@ -275,7 +272,7 @@ mod tests {
             flip: Some(true),
         });
         assert_eq!(
-            normalize_slide_segment(0.try_into().unwrap(), segment),
+            normalize_slide_segment(0.try_into().unwrap(), &segment),
             Some(expected)
         );
 
@@ -289,7 +286,35 @@ mod tests {
             flip: Some(false),
         });
         assert_eq!(
-            normalize_slide_segment(0.try_into().unwrap(), segment),
+            normalize_slide_segment(0.try_into().unwrap(), &segment),
+            Some(expected)
+        );
+
+        let segment = SlideSegment::Angle(SlideSegmentParams {
+            destination: 3.try_into().unwrap(),
+            interim: Some(5.try_into().unwrap()),
+        });
+        let expected = NormalizedSlideSegment::Turn(NormalizedSlideSegmentParams {
+            start: 7.try_into().unwrap(),
+            destination: 3.try_into().unwrap(),
+            flip: Some(false),
+        });
+        assert_eq!(
+            normalize_slide_segment(7.try_into().unwrap(), &segment),
+            Some(expected)
+        );
+
+        let segment = SlideSegment::Angle(SlideSegmentParams {
+            destination: 2.try_into().unwrap(),
+            interim: Some(0.try_into().unwrap()),
+        });
+        let expected = NormalizedSlideSegment::Turn(NormalizedSlideSegmentParams {
+            start: 6.try_into().unwrap(),
+            destination: 2.try_into().unwrap(),
+            flip: Some(true),
+        });
+        assert_eq!(
+            normalize_slide_segment(6.try_into().unwrap(), &segment),
             Some(expected)
         );
 
@@ -303,7 +328,7 @@ mod tests {
             flip: Some(false),
         });
         assert_eq!(
-            normalize_slide_segment(0.try_into().unwrap(), segment),
+            normalize_slide_segment(0.try_into().unwrap(), &segment),
             Some(expected)
         );
 
@@ -312,7 +337,7 @@ mod tests {
             interim: Some(7.try_into().unwrap()),
         });
         assert_eq!(
-            normalize_slide_segment(0.try_into().unwrap(), segment),
+            normalize_slide_segment(0.try_into().unwrap(), &segment),
             None
         );
 
@@ -321,7 +346,7 @@ mod tests {
             interim: Some(2.try_into().unwrap()),
         });
         assert_eq!(
-            normalize_slide_segment(0.try_into().unwrap(), segment),
+            normalize_slide_segment(0.try_into().unwrap(), &segment),
             None
         );
 
