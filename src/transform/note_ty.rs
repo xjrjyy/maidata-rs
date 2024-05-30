@@ -105,21 +105,21 @@ impl std::fmt::Display for NormalizedSlideSegmentGroup {
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum NormalizedSlideSegment {
-    Line(NormalizedSlideSegmentParams),
-    Clockwise(NormalizedSlideSegmentParams),
-    V(NormalizedSlideSegmentParams),
-    PQ(NormalizedSlideSegmentParams),
-    SZ(NormalizedSlideSegmentParams),
-    PpQq(NormalizedSlideSegmentParams),
-    Angle(NormalizedSlideSegmentParams),
-    Spread(NormalizedSlideSegmentParams),
+    Straight(NormalizedSlideSegmentParams),
+    Circle(NormalizedSlideSegmentParams),
+    Corner(NormalizedSlideSegmentParams),
+    Round(NormalizedSlideSegmentParams),
+    Thunder(NormalizedSlideSegmentParams),
+    Curve(NormalizedSlideSegmentParams),
+    Turn(NormalizedSlideSegmentParams),
+    Fan(NormalizedSlideSegmentParams),
 }
 
 impl std::fmt::Display for NormalizedSlideSegment {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Line(param) => write!(f, "-{}", param.destination),
-            Self::Clockwise(param) => {
+            Self::Straight(param) => write!(f, "-{}", param.destination),
+            Self::Circle(param) => {
                 let end_index = param.destination.index().unwrap();
                 let upper = !(2..6).contains(&end_index);
                 write!(
@@ -133,8 +133,8 @@ impl std::fmt::Display for NormalizedSlideSegment {
                     param.destination
                 )
             }
-            Self::V(param) => write!(f, "v{}", param.destination),
-            Self::PQ(param) => {
+            Self::Corner(param) => write!(f, "v{}", param.destination),
+            Self::Round(param) => {
                 write!(
                     f,
                     "{}{}",
@@ -142,7 +142,7 @@ impl std::fmt::Display for NormalizedSlideSegment {
                     param.destination
                 )
             }
-            Self::SZ(param) => {
+            Self::Thunder(param) => {
                 write!(
                     f,
                     "{}{}",
@@ -150,7 +150,7 @@ impl std::fmt::Display for NormalizedSlideSegment {
                     param.destination
                 )
             }
-            Self::PpQq(param) => {
+            Self::Curve(param) => {
                 write!(
                     f,
                     "{}{}",
@@ -158,13 +158,13 @@ impl std::fmt::Display for NormalizedSlideSegment {
                     param.destination
                 )
             }
-            Self::Angle(param) => {
+            Self::Turn(param) => {
                 let interim =
                     (param.start.index().unwrap() + if param.flip.unwrap() { 2 } else { 6 }) % 8;
                 let interim = Key::try_from(interim).unwrap();
                 write!(f, "V{}{}", interim, param.destination)
             }
-            Self::Spread(param) => write!(f, "w{}", param.destination),
+            Self::Fan(param) => write!(f, "w{}", param.destination),
         }
     }
 }
@@ -172,41 +172,41 @@ impl std::fmt::Display for NormalizedSlideSegment {
 impl NormalizedSlideSegment {
     pub fn shape(&self) -> NormalizedSlideSegmentShape {
         match self {
-            Self::Line(_) => NormalizedSlideSegmentShape::Line,
-            Self::Clockwise(_) => NormalizedSlideSegmentShape::Clockwise,
-            Self::V(_) => NormalizedSlideSegmentShape::V,
-            Self::PQ(_) => NormalizedSlideSegmentShape::PQ,
-            Self::SZ(_) => NormalizedSlideSegmentShape::SZ,
-            Self::PpQq(_) => NormalizedSlideSegmentShape::PpQq,
-            Self::Angle(_) => NormalizedSlideSegmentShape::Angle,
-            Self::Spread(_) => NormalizedSlideSegmentShape::Spread,
+            Self::Straight(_) => NormalizedSlideSegmentShape::Straight,
+            Self::Circle(_) => NormalizedSlideSegmentShape::Circle,
+            Self::Corner(_) => NormalizedSlideSegmentShape::Corner,
+            Self::Round(_) => NormalizedSlideSegmentShape::Round,
+            Self::Thunder(_) => NormalizedSlideSegmentShape::Thunder,
+            Self::Curve(_) => NormalizedSlideSegmentShape::Curve,
+            Self::Turn(_) => NormalizedSlideSegmentShape::Turn,
+            Self::Fan(_) => NormalizedSlideSegmentShape::Fan,
         }
     }
 
     pub fn params(&self) -> &NormalizedSlideSegmentParams {
         match self {
-            NormalizedSlideSegment::Line(p) => p,
-            NormalizedSlideSegment::Clockwise(p) => p,
-            NormalizedSlideSegment::V(p) => p,
-            NormalizedSlideSegment::PQ(p) => p,
-            NormalizedSlideSegment::SZ(p) => p,
-            NormalizedSlideSegment::PpQq(p) => p,
-            NormalizedSlideSegment::Angle(p) => p,
-            NormalizedSlideSegment::Spread(p) => p,
+            NormalizedSlideSegment::Straight(p) => p,
+            NormalizedSlideSegment::Circle(p) => p,
+            NormalizedSlideSegment::Corner(p) => p,
+            NormalizedSlideSegment::Round(p) => p,
+            NormalizedSlideSegment::Thunder(p) => p,
+            NormalizedSlideSegment::Curve(p) => p,
+            NormalizedSlideSegment::Turn(p) => p,
+            NormalizedSlideSegment::Fan(p) => p,
         }
     }
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum NormalizedSlideSegmentShape {
-    Line,      // -
-    Clockwise, // <>^ counterclockwise, clockwise(flip)
-    V,         // v
-    PQ,        // p, q(filp)
-    SZ,        // s, z(filp)
-    PpQq,      // pp, qq(filp)
-    Angle,     // 1V75, 1V35(flip)
-    Spread,    // w
+    Straight, // -
+    Circle,   // <>^ counterclockwise, clockwise(flip)
+    Corner,   // v
+    Round,    // p, q(filp)
+    Thunder,  // s, z(filp)
+    Curve,    // pp, qq(filp)
+    Turn,     // 1V75, 1V35(flip)
+    Fan,      // w
 }
 
 impl From<NormalizedSlideSegment> for NormalizedSlideSegmentShape {

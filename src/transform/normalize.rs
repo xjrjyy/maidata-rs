@@ -61,33 +61,33 @@ pub fn normalize_slide_segment(
     };
     match segment {
         SlideSegment::Line(_) => match distance {
-            2..=6 => Some(NormalizedSlideSegment::Line(normalized_params)),
+            2..=6 => Some(NormalizedSlideSegment::Straight(normalized_params)),
             _ => None,
         },
         SlideSegment::Arc(_) => slide_segment_is_clockwise(start, segment)
-            .map(|_| NormalizedSlideSegment::Clockwise(normalized_params)),
+            .map(|_| NormalizedSlideSegment::Circle(normalized_params)),
         SlideSegment::CircumferenceLeft(_) | SlideSegment::CircumferenceRight(_) => {
-            Some(NormalizedSlideSegment::Clockwise(normalized_params))
+            Some(NormalizedSlideSegment::Circle(normalized_params))
         }
         SlideSegment::V(_) => match distance {
             0 | 4 => None,
-            _ => Some(NormalizedSlideSegment::V(normalized_params)),
+            _ => Some(NormalizedSlideSegment::Corner(normalized_params)),
         },
         SlideSegment::P(_) | SlideSegment::Q(_) => {
-            Some(NormalizedSlideSegment::PQ(normalized_params))
+            Some(NormalizedSlideSegment::Round(normalized_params))
         }
         SlideSegment::S(_) | SlideSegment::Z(_) => match distance {
-            4 => Some(NormalizedSlideSegment::SZ(normalized_params)),
+            4 => Some(NormalizedSlideSegment::Thunder(normalized_params)),
             _ => None,
         },
         SlideSegment::Pp(_) | SlideSegment::Qq(_) => {
-            Some(NormalizedSlideSegment::PpQq(normalized_params))
+            Some(NormalizedSlideSegment::Curve(normalized_params))
         }
         SlideSegment::Angle(params) => match key_clockwise_distance(start, params.interim.unwrap())
         {
             2 | 6 => match key_clockwise_distance(params.interim.unwrap(), params.destination) {
                 2..=6 => match start != params.destination {
-                    true => Some(NormalizedSlideSegment::Angle(normalized_params)),
+                    true => Some(NormalizedSlideSegment::Turn(normalized_params)),
                     false => None,
                 },
                 _ => None,
@@ -95,7 +95,7 @@ pub fn normalize_slide_segment(
             _ => None,
         },
         SlideSegment::Spread(_) => match distance {
-            4 => Some(NormalizedSlideSegment::Spread(normalized_params)),
+            4 => Some(NormalizedSlideSegment::Fan(normalized_params)),
             _ => None,
         },
     }
@@ -203,73 +203,73 @@ mod tests {
 
         assert_eq!(
             normalize!(Line, 0, 2),
-            Some(normalized_segment!(Line, 0, 2, None))
+            Some(normalized_segment!(Straight, 0, 2, None))
         );
         assert_eq!(normalize!(Line, 0, 7), None);
 
         assert_eq!(
             normalize!(Arc, 0, 3),
-            Some(normalized_segment!(Clockwise, 0, 3, Some(true)))
+            Some(normalized_segment!(Circle, 0, 3, Some(true)))
         );
         assert_eq!(
             normalize!(Arc, 5, 4),
-            Some(normalized_segment!(Clockwise, 5, 4, Some(false)))
+            Some(normalized_segment!(Circle, 5, 4, Some(false)))
         );
         assert_eq!(normalize!(Arc, 0, 4), None);
 
         assert_eq!(
             normalize!(CircumferenceLeft, 0, 0),
-            Some(normalized_segment!(Clockwise, 0, 0, Some(false)))
+            Some(normalized_segment!(Circle, 0, 0, Some(false)))
         );
 
         assert_eq!(
             normalize!(CircumferenceRight, 6, 6),
-            Some(normalized_segment!(Clockwise, 6, 6, Some(true)))
+            Some(normalized_segment!(Circle, 6, 6, Some(true)))
         );
 
         assert_eq!(
             normalize!(V, 0, 1),
-            Some(normalized_segment!(V, 0, 1, None))
+            Some(normalized_segment!(Corner, 0, 1, None))
         );
         assert_eq!(normalize!(V, 4, 0), None);
 
         assert_eq!(
             normalize!(P, 3, 3),
-            Some(normalized_segment!(PQ, 3, 3, Some(false)))
+            Some(normalized_segment!(Round, 3, 3, Some(false)))
         );
 
         assert_eq!(
             normalize!(Q, 5, 5),
-            Some(normalized_segment!(PQ, 5, 5, Some(true)))
+            Some(normalized_segment!(Round, 5, 5, Some(true)))
         );
 
         assert_eq!(
             normalize!(S, 0, 4),
-            Some(normalized_segment!(SZ, 0, 4, Some(false)))
+            Some(normalized_segment!(Thunder, 0, 4, Some(false)))
         );
         assert_eq!(normalize!(S, 0, 3), None);
 
         assert_eq!(
             normalize!(Z, 0, 4),
-            Some(normalized_segment!(SZ, 0, 4, Some(true)))
+            Some(normalized_segment!(Thunder, 0, 4, Some(true)))
         );
         assert_eq!(normalize!(Z, 0, 3), None);
 
         assert_eq!(
             normalize!(Pp, 0, 0),
-            Some(normalized_segment!(PpQq, 0, 0, Some(false)))
+            Some(normalized_segment!(Curve, 0, 0, Some(false)))
         );
 
         assert_eq!(
             normalize!(Qq, 0, 0),
-            Some(normalized_segment!(PpQq, 0, 0, Some(true)))
+            Some(normalized_segment!(Curve, 0, 0, Some(true)))
         );
 
         let segment = SlideSegment::Angle(SlideSegmentParams {
             destination: 6.try_into().unwrap(),
             interim: Some(2.try_into().unwrap()),
         });
-        let expected = NormalizedSlideSegment::Angle(NormalizedSlideSegmentParams {
+        let expected = NormalizedSlideSegment::Turn(NormalizedSlideSegmentParams {
             start: 0.try_into().unwrap(),
             destination: 6.try_into().unwrap(),
             flip: Some(true),
@@ -283,7 +283,7 @@ mod tests {
             destination: 3.try_into().unwrap(),
             interim: Some(6.try_into().unwrap()),
         });
-        let expected = NormalizedSlideSegment::Angle(NormalizedSlideSegmentParams {
+        let expected = NormalizedSlideSegment::Turn(NormalizedSlideSegmentParams {
             start: 0.try_into().unwrap(),
             destination: 3.try_into().unwrap(),
             flip: Some(false),
@@ -297,7 +297,7 @@ mod tests {
             destination: 1.try_into().unwrap(),
             interim: Some(6.try_into().unwrap()),
         });
-        let expected = NormalizedSlideSegment::Angle(NormalizedSlideSegmentParams {
+        let expected = NormalizedSlideSegment::Turn(NormalizedSlideSegmentParams {
             start: 0.try_into().unwrap(),
             destination: 1.try_into().unwrap(),
             flip: Some(false),
@@ -327,7 +327,7 @@ mod tests {
 
         assert_eq!(
             normalize!(Spread, 0, 4),
-            Some(normalized_segment!(Spread, 0, 4, None))
+            Some(normalized_segment!(Fan, 0, 4, None))
         );
         assert_eq!(normalize!(Spread, 0, 3), None);
 

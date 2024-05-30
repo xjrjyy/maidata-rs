@@ -85,14 +85,14 @@ impl Transformable for NormalizedSlideSegment {
             flip: self.params().flip.map(|x| x ^ transformer.flip),
         };
         match self {
-            NormalizedSlideSegment::Line(_) => NormalizedSlideSegment::Line(params),
-            NormalizedSlideSegment::Clockwise(_) => NormalizedSlideSegment::Clockwise(params),
-            NormalizedSlideSegment::V(_) => NormalizedSlideSegment::V(params),
-            NormalizedSlideSegment::PQ(_) => NormalizedSlideSegment::PQ(params),
-            NormalizedSlideSegment::SZ(_) => NormalizedSlideSegment::SZ(params),
-            NormalizedSlideSegment::PpQq(_) => NormalizedSlideSegment::PpQq(params),
-            NormalizedSlideSegment::Angle(_) => NormalizedSlideSegment::Angle(params),
-            NormalizedSlideSegment::Spread(_) => NormalizedSlideSegment::Spread(params),
+            NormalizedSlideSegment::Straight(_) => NormalizedSlideSegment::Straight(params),
+            NormalizedSlideSegment::Circle(_) => NormalizedSlideSegment::Circle(params),
+            NormalizedSlideSegment::Corner(_) => NormalizedSlideSegment::Corner(params),
+            NormalizedSlideSegment::Round(_) => NormalizedSlideSegment::Round(params),
+            NormalizedSlideSegment::Thunder(_) => NormalizedSlideSegment::Thunder(params),
+            NormalizedSlideSegment::Curve(_) => NormalizedSlideSegment::Curve(params),
+            NormalizedSlideSegment::Turn(_) => NormalizedSlideSegment::Turn(params),
+            NormalizedSlideSegment::Fan(_) => NormalizedSlideSegment::Fan(params),
         }
     }
 }
