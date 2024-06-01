@@ -14,10 +14,13 @@ fn main() {
         .map(|e| read_file(e.path()))
         .map(|content| maidata::container::lex_maidata(&content))
         .collect::<Vec<_>>();
-
-    let mut result = maidata_vec
+    let beatmap_data_vec = maidata_vec
         .iter()
         .flat_map(parse_maidata)
+        .collect::<Vec<_>>();
+
+    let mut result = beatmap_data_vec
+        .iter()
         .map(|data| {
             let max_slide_length = data
                 .groups
@@ -42,8 +45,8 @@ fn main() {
         })
         .collect::<Vec<_>>();
 
-    result.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
-    for (data, max_slide_length) in result.iter().rev().take(20) {
+    result.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+    for (data, max_slide_length) in result.iter().take(20) {
         println!(
             "{:.2}s: {} [{:?}]",
             max_slide_length,
