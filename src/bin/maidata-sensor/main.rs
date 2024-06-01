@@ -2,6 +2,12 @@ use maidata::container::{AssociatedBeatmapData, Maidata};
 use std::time::Instant;
 use walkdir::WalkDir;
 
+struct BeatmapData<'a> {
+    maidata: &'a Maidata,
+    diff: AssociatedBeatmapData<'a>,
+    groups: Vec<(TimestampInSeconds, Vec<Note>)>,
+}
+
 fn main() {
     let dir = std::env::args().nth(1).expect("usage: $0 <path/to/charts>");
 
@@ -16,7 +22,16 @@ fn main() {
         .collect::<Vec<_>>();
     let beatmap_data_vec = maidata_vec
         .iter()
-        .flat_map(parse_maidata)
+        .flat_map(|maidata| {
+            maidata.iter_difficulties().map(move |diff| {
+                parse_maidata(&diff).map(|groups| BeatmapData {
+                    maidata,
+                    diff,
+                    groups,
+                })
+            })
+        })
+        .flatten()
         .collect::<Vec<_>>();
 
     let mut result = beatmap_data_vec
@@ -84,12 +99,6 @@ struct Note {
     raw_note: MaterializedNote,
 }
 
-struct BeatmapData<'a> {
-    maidata: &'a Maidata,
-    diff: AssociatedBeatmapData<'a>,
-    groups: Vec<(TimestampInSeconds, Vec<Note>)>,
-}
-
 fn key_to_sensor(key: Key) -> TouchSensor {
     ('A', key.index()).try_into().unwrap()
 }
@@ -141,131 +150,122 @@ fn materialized_to_normalized_slide_segment(
     }]
 }
 
-fn parse_maidata(maidata: &Maidata) -> Vec<BeatmapData<'_>> {
-    maidata
-        .iter_difficulties()
-        .map(move |diff| {
-            // if !match diff.level() {
-            //     Some(Level::Normal(level)) => (11..=13).contains(&level),
-            //     Some(Level::Plus(level)) => (11..=13).contains(&level),
-            //     Some(Level::Char(_)) => false,
-            //     None => false,
-            // } {
-            //     continue;
-            // }
+fn parse_maidata(diff: &AssociatedBeatmapData) -> Option<Vec<(TimestampInSeconds, Vec<Note>)>> {
+    // if !match diff.level() {
+    //     Some(Level::Normal(level)) => (11..=13).contains(&level),
+    //     Some(Level::Plus(level)) => (11..=13).contains(&level),
+    //     Some(Level::Char(_)) => false,
+    //     None => false,
+    // } {
+    //     return None;
+    // }
 
-            let mut mcx = maidata::materialize::MaterializationContext::with_offset(0.0);
-            let notes = mcx.materialize_insns(diff.iter_insns());
+    let mut mcx = maidata::materialize::MaterializationContext::with_offset(0.0);
+    let notes = mcx.materialize_insns(diff.iter_insns());
 
-            let mut notes = notes
-                .into_iter()
-                .map(|note| match &note {
-                    MaterializedNote::Tap(params) => Note {
-                        sensors: vec![key_to_sensor(params.key)],
-                        dur: params.ts - TAP_JUDGE_THRESHOLD..params.ts,
-                        raw_note: note,
-                    },
-                    MaterializedNote::Touch(params) => Note {
-                        sensors: vec![params.sensor],
-                        dur: params.ts - TAP_JUDGE_THRESHOLD..params.ts,
-                        raw_note: note,
-                    },
-                    MaterializedNote::Hold(params) => Note {
-                        sensors: vec![key_to_sensor(params.key)],
-                        dur: params.ts - TAP_JUDGE_THRESHOLD..params.ts + params.dur, // TODO: check
-                        raw_note: note,
-                    },
-                    MaterializedNote::TouchHold(params) => Note {
-                        sensors: vec![params.sensor],
-                        dur: params.ts - TAP_JUDGE_THRESHOLD..params.ts + params.dur, // TODO: check
-                        raw_note: note,
-                    },
-                    MaterializedNote::SlideTrack(params) => {
-                        let groups = params
-                            .groups
+    let mut notes = notes
+        .into_iter()
+        .map(|note| match &note {
+            MaterializedNote::Tap(params) => Note {
+                sensors: vec![key_to_sensor(params.key)],
+                dur: params.ts - TAP_JUDGE_THRESHOLD..params.ts,
+                raw_note: note,
+            },
+            MaterializedNote::Touch(params) => Note {
+                sensors: vec![params.sensor],
+                dur: params.ts - TAP_JUDGE_THRESHOLD..params.ts,
+                raw_note: note,
+            },
+            MaterializedNote::Hold(params) => Note {
+                sensors: vec![key_to_sensor(params.key)],
+                dur: params.ts - TAP_JUDGE_THRESHOLD..params.ts + params.dur, // TODO: check
+                raw_note: note,
+            },
+            MaterializedNote::TouchHold(params) => Note {
+                sensors: vec![params.sensor],
+                dur: params.ts - TAP_JUDGE_THRESHOLD..params.ts + params.dur, // TODO: check
+                raw_note: note,
+            },
+            MaterializedNote::SlideTrack(params) => {
+                let groups = params
+                    .groups
+                    .iter()
+                    .map(|group| {
+                        let segments = group
+                            .segments
                             .iter()
-                            .map(|group| {
-                                let segments = group
-                                    .segments
-                                    .iter()
-                                    .flat_map(materialized_to_normalized_slide_segment)
-                                    .collect();
-                                NormalizedSlideSegmentGroup { segments }
-                            })
+                            .flat_map(materialized_to_normalized_slide_segment)
                             .collect();
-                        let mut path = SLIDE_PATH_GETTER
-                            .get(NormalizedSlideTrack { groups })
-                            .into_iter()
-                            .flatten()
-                            .flatten()
-                            .collect::<Vec<_>>();
-                        path.sort();
-                        path.dedup();
-                        let dur = params
-                            .groups
-                            .iter()
-                            .map(|group| group.dur)
-                            .sum::<DurationInSeconds>();
-                        Note {
-                            sensors: path,
-                            dur: params.ts - SLIDE_JUDGE_THRESHOLD..params.ts + dur, // TODO: check
-                            raw_note: note,
-                        }
-                    }
-                })
-                .collect::<Vec<_>>();
-
-            let get_sensor_index = |sensor: &TouchSensor| match sensor.group() {
-                Some('A') => sensor.index().unwrap(),
-                Some('B') => sensor.index().unwrap() + 8,
-                Some('C') => 16,
-                Some('D') => sensor.index().unwrap() + 17,
-                Some('E') => sensor.index().unwrap() + 25,
-                _ => unreachable!(),
-            };
-            notes.sort_by(|a, b| a.dur.start.partial_cmp(&b.dur.start).unwrap());
-            let mut groups: Vec<(TimestampInSeconds, Vec<Note>)> = notes
-                .iter()
-                .map(|note| (note.dur.end, vec![note.clone()]))
-                .collect();
-            let mut last_note_index: Vec<Option<usize>> = vec![None; 33];
-            for (index, note) in notes.iter().enumerate() {
-                note.sensors.iter().for_each(|sensor| {
-                    let sensor_index = get_sensor_index(sensor) as usize;
-                    if let Some(last_index) = last_note_index[sensor_index] {
-                        if last_index != index
-                            && note.dur.start < groups[last_index].0 + GROUP_DUR_THRESHOLD
-                        {
-                            // TODO: it can't work because of borrow checker:
-                            // groups[index].1.extend(groups[last_index].1.drain(..));
-                            let mut tmp = Vec::new();
-                            std::mem::swap(&mut tmp, &mut groups[last_index].1);
-                            groups[index].1.extend(tmp);
-                            groups[index].0 = groups[index].0.max(groups[last_index].0);
-                            groups[last_index].0 = TimestampInSeconds::NEG_INFINITY;
-                        }
-                    }
-                });
-                note.sensors.iter().for_each(|sensor| {
-                    let sensor_index = get_sensor_index(sensor) as usize;
-                    last_note_index[sensor_index] = Some(index);
-                });
-            }
-
-            groups.retain(|group| !group.1.is_empty());
-            groups.iter_mut().for_each(|group| {
-                group
-                    .1
-                    .sort_by(|a, b| a.dur.start.partial_cmp(&b.dur.start).unwrap())
-            });
-
-            BeatmapData {
-                maidata,
-                diff,
-                groups,
+                        NormalizedSlideSegmentGroup { segments }
+                    })
+                    .collect();
+                let mut path = SLIDE_PATH_GETTER
+                    .get(NormalizedSlideTrack { groups })
+                    .into_iter()
+                    .flatten()
+                    .flatten()
+                    .collect::<Vec<_>>();
+                path.sort();
+                path.dedup();
+                let dur = params
+                    .groups
+                    .iter()
+                    .map(|group| group.dur)
+                    .sum::<DurationInSeconds>();
+                Note {
+                    sensors: path,
+                    dur: params.ts - SLIDE_JUDGE_THRESHOLD..params.ts + dur, // TODO: check
+                    raw_note: note,
+                }
             }
         })
-        .collect()
+        .collect::<Vec<_>>();
+
+    let get_sensor_index = |sensor: &TouchSensor| match sensor.group() {
+        Some('A') => sensor.index().unwrap(),
+        Some('B') => sensor.index().unwrap() + 8,
+        Some('C') => 16,
+        Some('D') => sensor.index().unwrap() + 17,
+        Some('E') => sensor.index().unwrap() + 25,
+        _ => unreachable!(),
+    };
+    notes.sort_by(|a, b| a.dur.start.partial_cmp(&b.dur.start).unwrap());
+    let mut groups: Vec<(TimestampInSeconds, Vec<Note>)> = notes
+        .iter()
+        .map(|note| (note.dur.end, vec![note.clone()]))
+        .collect();
+    let mut last_note_index: Vec<Option<usize>> = vec![None; 33];
+    for (index, note) in notes.iter().enumerate() {
+        note.sensors.iter().for_each(|sensor| {
+            let sensor_index = get_sensor_index(sensor) as usize;
+            if let Some(last_index) = last_note_index[sensor_index] {
+                if last_index != index
+                    && note.dur.start < groups[last_index].0 + GROUP_DUR_THRESHOLD
+                {
+                    // TODO: it can't work because of borrow checker:
+                    // groups[index].1.extend(groups[last_index].1.drain(..));
+                    let mut tmp = Vec::new();
+                    std::mem::swap(&mut tmp, &mut groups[last_index].1);
+                    groups[index].1.extend(tmp);
+                    groups[index].0 = groups[index].0.max(groups[last_index].0);
+                    groups[last_index].0 = TimestampInSeconds::NEG_INFINITY;
+                }
+            }
+        });
+        note.sensors.iter().for_each(|sensor| {
+            let sensor_index = get_sensor_index(sensor) as usize;
+            last_note_index[sensor_index] = Some(index);
+        });
+    }
+
+    groups.retain(|group| !group.1.is_empty());
+    groups.iter_mut().for_each(|group| {
+        group
+            .1
+            .sort_by(|a, b| a.dur.start.partial_cmp(&b.dur.start).unwrap())
+    });
+
+    Some(groups)
 }
 
 fn read_file<P: AsRef<std::path::Path>>(path: P) -> String {
