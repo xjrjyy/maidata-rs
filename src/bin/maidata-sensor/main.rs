@@ -91,7 +91,7 @@ const FRAME_DURATION: DurationInSeconds = 1.0 / FRAMES_PER_SECOND;
 const TAP_JUDGE_THRESHOLD: DurationInSeconds = FRAME_DURATION * 9.0;
 const SLIDE_JUDGE_THRESHOLD: DurationInSeconds = FRAME_DURATION * 3.0;
 
-const GROUP_DUR_THRESHOLD: DurationInSeconds = 0.0001;
+const GROUP_DUR_THRESHOLD: DurationInSeconds = 0.15;
 
 #[derive(Clone, Debug)]
 struct Note {
@@ -215,7 +215,7 @@ fn parse_maidata(diff: &AssociatedBeatmapData) -> Option<Vec<(TimestampInSeconds
                     .sum::<DurationInSeconds>();
                 Note {
                     sensors: path,
-                    dur: params.ts - SLIDE_JUDGE_THRESHOLD..params.ts + dur, // TODO: check
+                    dur: params.ts - SLIDE_JUDGE_THRESHOLD..params.start_ts + dur, // TODO: check
                     raw_note: note,
                 }
             }
@@ -240,15 +240,15 @@ fn parse_maidata(diff: &AssociatedBeatmapData) -> Option<Vec<(TimestampInSeconds
         note.sensors.iter().for_each(|sensor| {
             let sensor_index = get_sensor_index(sensor) as usize;
             if let Some(last_index) = last_note_index[sensor_index] {
-                if last_index != index
-                    && note.dur.start < groups[last_index].0 + GROUP_DUR_THRESHOLD
-                {
-                    // TODO: it can't work because of borrow checker:
-                    // groups[index].1.extend(groups[last_index].1.drain(..));
-                    let mut tmp = Vec::new();
-                    std::mem::swap(&mut tmp, &mut groups[last_index].1);
-                    groups[index].1.extend(tmp);
-                    groups[index].0 = groups[index].0.max(groups[last_index].0);
+                if last_index != index {
+                    if note.dur.start < groups[last_index].0 + GROUP_DUR_THRESHOLD {
+                        // TODO: it can't work because of borrow checker:
+                        // groups[index].1.extend(groups[last_index].1.drain(..));
+                        let mut tmp = Vec::new();
+                        std::mem::swap(&mut tmp, &mut groups[last_index].1);
+                        groups[index].1.extend(tmp);
+                        groups[index].0 = groups[index].0.max(groups[last_index].0);
+                    }
                     groups[last_index].0 = TimestampInSeconds::NEG_INFINITY;
                 }
             }
