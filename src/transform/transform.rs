@@ -82,17 +82,39 @@ impl Transformable for NormalizedSlideSegment {
         let params = NormalizedSlideSegmentParams {
             start: self.params().start.transform(transformer),
             destination: self.params().destination.transform(transformer),
-            flip: self.params().flip.map(|x| x ^ transformer.flip),
         };
-        match self {
-            NormalizedSlideSegment::Straight(_) => NormalizedSlideSegment::Straight(params),
-            NormalizedSlideSegment::Circle(_) => NormalizedSlideSegment::Circle(params),
-            NormalizedSlideSegment::Corner(_) => NormalizedSlideSegment::Corner(params),
-            NormalizedSlideSegment::Round(_) => NormalizedSlideSegment::Round(params),
-            NormalizedSlideSegment::Thunder(_) => NormalizedSlideSegment::Thunder(params),
-            NormalizedSlideSegment::Curve(_) => NormalizedSlideSegment::Curve(params),
-            NormalizedSlideSegment::Turn(_) => NormalizedSlideSegment::Turn(params),
-            NormalizedSlideSegment::Fan(_) => NormalizedSlideSegment::Fan(params),
+        if transformer.flip {
+            match self {
+                NormalizedSlideSegment::Straight(_) => NormalizedSlideSegment::Straight(params),
+                NormalizedSlideSegment::CircleL(_) => NormalizedSlideSegment::CircleR(params),
+                NormalizedSlideSegment::CircleR(_) => NormalizedSlideSegment::CircleL(params),
+                NormalizedSlideSegment::CurveL(_) => NormalizedSlideSegment::CurveR(params),
+                NormalizedSlideSegment::CurveR(_) => NormalizedSlideSegment::CurveL(params),
+                NormalizedSlideSegment::ThunderL(_) => NormalizedSlideSegment::ThunderR(params),
+                NormalizedSlideSegment::ThunderR(_) => NormalizedSlideSegment::ThunderL(params),
+                NormalizedSlideSegment::Corner(_) => NormalizedSlideSegment::Corner(params),
+                NormalizedSlideSegment::BendL(_) => NormalizedSlideSegment::BendR(params),
+                NormalizedSlideSegment::BendR(_) => NormalizedSlideSegment::BendL(params),
+                NormalizedSlideSegment::SkipL(_) => NormalizedSlideSegment::SkipR(params),
+                NormalizedSlideSegment::SkipR(_) => NormalizedSlideSegment::SkipL(params),
+                NormalizedSlideSegment::Fan(_) => NormalizedSlideSegment::Fan(params),
+            }
+        } else {
+            match self {
+                NormalizedSlideSegment::Straight(_) => NormalizedSlideSegment::Straight(params),
+                NormalizedSlideSegment::CircleL(_) => NormalizedSlideSegment::CircleL(params),
+                NormalizedSlideSegment::CircleR(_) => NormalizedSlideSegment::CircleR(params),
+                NormalizedSlideSegment::CurveL(_) => NormalizedSlideSegment::CurveL(params),
+                NormalizedSlideSegment::CurveR(_) => NormalizedSlideSegment::CurveR(params),
+                NormalizedSlideSegment::ThunderL(_) => NormalizedSlideSegment::ThunderL(params),
+                NormalizedSlideSegment::ThunderR(_) => NormalizedSlideSegment::ThunderR(params),
+                NormalizedSlideSegment::Corner(_) => NormalizedSlideSegment::Corner(params),
+                NormalizedSlideSegment::BendL(_) => NormalizedSlideSegment::BendL(params),
+                NormalizedSlideSegment::BendR(_) => NormalizedSlideSegment::BendR(params),
+                NormalizedSlideSegment::SkipL(_) => NormalizedSlideSegment::SkipL(params),
+                NormalizedSlideSegment::SkipR(_) => NormalizedSlideSegment::SkipR(params),
+                NormalizedSlideSegment::Fan(_) => NormalizedSlideSegment::Fan(params),
+            }
         }
     }
 }

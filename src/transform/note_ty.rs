@@ -105,63 +105,60 @@ impl std::fmt::Display for NormalizedSlideSegmentGroup {
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum NormalizedSlideSegment {
-    Straight(NormalizedSlideSegmentParams),
-    Circle(NormalizedSlideSegmentParams),
-    Corner(NormalizedSlideSegmentParams),
-    Round(NormalizedSlideSegmentParams),
-    Thunder(NormalizedSlideSegmentParams),
-    Curve(NormalizedSlideSegmentParams),
-    Turn(NormalizedSlideSegmentParams),
-    Fan(NormalizedSlideSegmentParams),
+    Straight(NormalizedSlideSegmentParams), // -
+    CircleL(NormalizedSlideSegmentParams),  // counterclockwise
+    CircleR(NormalizedSlideSegmentParams),  // clockwise
+    CurveL(NormalizedSlideSegmentParams),   // p
+    CurveR(NormalizedSlideSegmentParams),   // q
+    ThunderL(NormalizedSlideSegmentParams), // s
+    ThunderR(NormalizedSlideSegmentParams), // z
+    Corner(NormalizedSlideSegmentParams),   // v
+    BendL(NormalizedSlideSegmentParams),    // qq
+    BendR(NormalizedSlideSegmentParams),    // pp
+    SkipL(NormalizedSlideSegmentParams),    // 1V7
+    SkipR(NormalizedSlideSegmentParams),    // 1V3
+    Fan(NormalizedSlideSegmentParams),      // w
 }
 
 impl std::fmt::Display for NormalizedSlideSegment {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Straight(param) => write!(f, "-{}", param.destination),
-            Self::Circle(param) => {
+            Self::CircleL(param) => {
                 let end_index = param.destination.index().unwrap();
                 let upper = !(2..6).contains(&end_index);
-                write!(
-                    f,
-                    "{}{}",
-                    if upper ^ param.flip.unwrap() {
-                        '>'
-                    } else {
-                        '<'
-                    },
-                    param.destination
-                )
+                write!(f, "{}{}", if upper { '<' } else { '>' }, param.destination)
+            }
+            Self::CircleR(param) => {
+                let end_index = param.destination.index().unwrap();
+                let upper = !(2..6).contains(&end_index);
+                write!(f, "{}{}", if upper { '>' } else { '<' }, param.destination)
+            }
+            Self::CurveL(param) => {
+                write!(f, "p{}", param.destination)
+            }
+            Self::CurveR(param) => {
+                write!(f, "q{}", param.destination)
+            }
+            Self::ThunderL(param) => {
+                write!(f, "s{}", param.destination)
+            }
+            Self::ThunderR(param) => {
+                write!(f, "z{}", param.destination)
             }
             Self::Corner(param) => write!(f, "v{}", param.destination),
-            Self::Round(param) => {
-                write!(
-                    f,
-                    "{}{}",
-                    if param.flip.unwrap() { 'p' } else { 'q' },
-                    param.destination
-                )
+            Self::BendL(param) => {
+                write!(f, "qq{}", param.destination)
             }
-            Self::Thunder(param) => {
-                write!(
-                    f,
-                    "{}{}",
-                    if param.flip.unwrap() { 'z' } else { 's' },
-                    param.destination
-                )
+            Self::BendR(param) => {
+                write!(f, "pp{}", param.destination)
             }
-            Self::Curve(param) => {
-                write!(
-                    f,
-                    "{}{}",
-                    if param.flip.unwrap() { "pp" } else { "qq" },
-                    param.destination
-                )
+            Self::SkipL(param) => {
+                let interim = Key::try_from((param.start.index().unwrap() + 6) % 8).unwrap();
+                write!(f, "V{}{}", interim, param.destination)
             }
-            Self::Turn(param) => {
-                let interim =
-                    (param.start.index().unwrap() + if param.flip.unwrap() { 2 } else { 6 }) % 8;
-                let interim = Key::try_from(interim).unwrap();
+            Self::SkipR(param) => {
+                let interim = Key::try_from((param.start.index().unwrap() + 2) % 8).unwrap();
                 write!(f, "V{}{}", interim, param.destination)
             }
             Self::Fan(param) => write!(f, "w{}", param.destination),
@@ -173,12 +170,17 @@ impl NormalizedSlideSegment {
     pub fn shape(&self) -> NormalizedSlideSegmentShape {
         match self {
             Self::Straight(_) => NormalizedSlideSegmentShape::Straight,
-            Self::Circle(_) => NormalizedSlideSegmentShape::Circle,
+            Self::CircleL(_) => NormalizedSlideSegmentShape::CircleL,
+            Self::CircleR(_) => NormalizedSlideSegmentShape::CircleR,
+            Self::CurveL(_) => NormalizedSlideSegmentShape::CurveL,
+            Self::CurveR(_) => NormalizedSlideSegmentShape::CurveR,
+            Self::ThunderL(_) => NormalizedSlideSegmentShape::ThunderL,
+            Self::ThunderR(_) => NormalizedSlideSegmentShape::ThunderR,
             Self::Corner(_) => NormalizedSlideSegmentShape::Corner,
-            Self::Round(_) => NormalizedSlideSegmentShape::Round,
-            Self::Thunder(_) => NormalizedSlideSegmentShape::Thunder,
-            Self::Curve(_) => NormalizedSlideSegmentShape::Curve,
-            Self::Turn(_) => NormalizedSlideSegmentShape::Turn,
+            Self::BendL(_) => NormalizedSlideSegmentShape::BendL,
+            Self::BendR(_) => NormalizedSlideSegmentShape::BendR,
+            Self::SkipL(_) => NormalizedSlideSegmentShape::SkipL,
+            Self::SkipR(_) => NormalizedSlideSegmentShape::SkipR,
             Self::Fan(_) => NormalizedSlideSegmentShape::Fan,
         }
     }
@@ -186,12 +188,17 @@ impl NormalizedSlideSegment {
     pub fn params(&self) -> &NormalizedSlideSegmentParams {
         match self {
             NormalizedSlideSegment::Straight(p) => p,
-            NormalizedSlideSegment::Circle(p) => p,
+            NormalizedSlideSegment::CircleL(p) => p,
+            NormalizedSlideSegment::CircleR(p) => p,
+            NormalizedSlideSegment::CurveL(p) => p,
+            NormalizedSlideSegment::CurveR(p) => p,
+            NormalizedSlideSegment::ThunderL(p) => p,
+            NormalizedSlideSegment::ThunderR(p) => p,
             NormalizedSlideSegment::Corner(p) => p,
-            NormalizedSlideSegment::Round(p) => p,
-            NormalizedSlideSegment::Thunder(p) => p,
-            NormalizedSlideSegment::Curve(p) => p,
-            NormalizedSlideSegment::Turn(p) => p,
+            NormalizedSlideSegment::BendL(p) => p,
+            NormalizedSlideSegment::BendR(p) => p,
+            NormalizedSlideSegment::SkipL(p) => p,
+            NormalizedSlideSegment::SkipR(p) => p,
             NormalizedSlideSegment::Fan(p) => p,
         }
     }
@@ -200,12 +207,17 @@ impl NormalizedSlideSegment {
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum NormalizedSlideSegmentShape {
     Straight, // -
-    Circle,   // <>^ counterclockwise, clockwise(flip)
+    CircleL,  // counterclockwise
+    CircleR,  // clockwise
+    CurveL,   // p
+    CurveR,   // q
+    ThunderL, // s
+    ThunderR, // z
     Corner,   // v
-    Round,    // p, q(filp)
-    Thunder,  // s, z(filp)
-    Curve,    // pp, qq(filp)
-    Turn,     // 1V75, 1V35(flip)
+    BendL,    // qq
+    BendR,    // pp
+    SkipL,    // 1V7
+    SkipR,    // 1V3
     Fan,      // w
 }
 
@@ -219,7 +231,6 @@ impl From<NormalizedSlideSegment> for NormalizedSlideSegmentShape {
 pub struct NormalizedSlideSegmentParams {
     pub start: Key,
     pub destination: Key,
-    pub flip: Option<bool>,
 }
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]

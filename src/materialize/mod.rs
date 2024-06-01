@@ -73,6 +73,5 @@ pub struct MaterializedSlideSegmentGroup {
 pub struct MaterializedSlideSegment {
     pub start: Key,
     pub destination: Key,
-    pub flip: Option<bool>,
     pub shape: NormalizedSlideSegmentShape,
 }

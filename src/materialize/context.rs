@@ -236,7 +236,6 @@ fn materialize_slide_segment(
     MaterializedSlideSegment {
         start: params.start,
         destination: params.destination,
-        flip: params.flip,
         shape,
     }
 }
