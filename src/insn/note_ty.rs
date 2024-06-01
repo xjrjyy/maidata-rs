@@ -248,27 +248,24 @@ impl std::fmt::Display for SlideParams {
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct SlideTrack {
+    pub is_break: bool,
     pub groups: Vec<SlideSegmentGroup>,
 }
 
 impl std::fmt::Display for SlideTrack {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            self.groups
-                .iter()
-                .map(|x| format!("{}", x))
-                .collect::<Vec<_>>()
-                .join("")
-        )
+        for group in self.groups.iter() {
+            write!(f, "{}", group)?;
+        }
+        if self.is_break {
+            write!(f, "b")?;
+        }
+        Ok(())
     }
 }
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct SlideSegmentGroup {
-    // it is slightly different from the official syntax
-    pub is_break: bool,
     pub segments: Vec<SlideSegment>,
     pub len: SlideLength,
 }
@@ -279,9 +276,6 @@ impl std::fmt::Display for SlideSegmentGroup {
             write!(f, "{}", segment)?;
         }
         write!(f, "[{}]", self.len)?;
-        if self.is_break {
-            write!(f, "b")?;
-        }
         Ok(())
     }
 }

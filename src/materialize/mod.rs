@@ -60,13 +60,13 @@ pub struct MaterializedSlideTrack {
     pub ts: TimestampInSeconds,
     pub start_ts: TimestampInSeconds,
     pub groups: Vec<MaterializedSlideSegmentGroup>,
+    pub is_break: bool,
 }
 
 #[derive(Clone, Debug)]
 pub struct MaterializedSlideSegmentGroup {
     pub dur: DurationInSeconds,
     pub segments: Vec<MaterializedSlideSegment>,
-    pub is_break: bool,
 }
 
 #[derive(Copy, Clone, Debug)]

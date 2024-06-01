@@ -197,6 +197,7 @@ fn materialize_slide_track(
         ts,
         start_ts,
         groups,
+        is_break: track.is_break,
     }
 }
 
@@ -220,7 +221,6 @@ fn materialize_slide_segment_group(
     MaterializedSlideSegmentGroup {
         dur: materialize_duration(group.len.slide_duration(), beat_dur),
         segments,
-        is_break: group.is_break,
     }
 }
 

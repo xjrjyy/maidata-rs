@@ -349,7 +349,7 @@ pub fn t_slide_segment(s: NomSpan) -> PResult<SlideSegment> {
     ))(s)
 }
 
-pub fn t_slide_segment_group(s: NomSpan) -> PResult<SlideSegmentGroup> {
+pub fn t_slide_segment_group(s: NomSpan) -> PResult<(SlideSegmentGroup, bool)> {
     use nom::character::complete::char;
     use nom::combinator::opt;
     use nom::multi::many1;
@@ -368,14 +368,7 @@ pub fn t_slide_segment_group(s: NomSpan) -> PResult<SlideSegmentGroup> {
     };
     let (s, _) = multispace0(s)?;
 
-    Ok((
-        s,
-        SlideSegmentGroup {
-            is_break: is_break.is_some(),
-            segments,
-            len,
-        },
-    ))
+    Ok((s, (SlideSegmentGroup { segments, len }, is_break.is_some())))
 }
 
 pub fn t_slide_track(s: NomSpan) -> PResult<SlideTrack> {
@@ -385,8 +378,16 @@ pub fn t_slide_track(s: NomSpan) -> PResult<SlideTrack> {
     // TODO: track with different speed
     let (s, groups) = many1(t_slide_segment_group)(s)?;
     let (s, _) = multispace0(s)?;
+    // it is slightly different from the official syntax
+    let is_break = groups.iter().any(|(_, is_break)| *is_break);
 
-    Ok((s, SlideTrack { groups }))
+    Ok((
+        s,
+        SlideTrack {
+            groups: groups.into_iter().map(|(group, _)| group).collect(),
+            is_break,
+        },
+    ))
 }
 
 pub fn t_slide_sep_track(s: NomSpan) -> PResult<SlideTrack> {
