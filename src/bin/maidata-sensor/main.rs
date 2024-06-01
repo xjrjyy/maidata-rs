@@ -2,6 +2,7 @@ use maidata::container::{AssociatedBeatmapData, Maidata};
 use std::time::Instant;
 use walkdir::WalkDir;
 
+#[warn(dead_code)]
 struct BeatmapData<'a> {
     maidata: &'a Maidata,
     diff: AssociatedBeatmapData<'a>,

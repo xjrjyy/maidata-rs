@@ -11,8 +11,8 @@ use std::ops::Deref;
 use std::time::Instant;
 use walkdir::WalkDir;
 
-fn minimal(group: &Vec<Vec<NormalizedNote>>) -> Vec<Vec<NormalizedNote>> {
-    let mut result = group.clone();
+fn minimal(group: &[Vec<NormalizedNote>]) -> Vec<Vec<NormalizedNote>> {
+    let mut result = group.to_owned();
     for rotation in 0..8 {
         for flip in [false, true] {
             result = result.min(
