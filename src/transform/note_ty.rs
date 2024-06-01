@@ -204,7 +204,7 @@ impl NormalizedSlideSegment {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Enum)]
 pub enum NormalizedSlideSegmentShape {
     Straight, // -
     CircleL,  // counterclockwise

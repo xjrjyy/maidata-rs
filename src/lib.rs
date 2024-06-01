@@ -1,8 +1,11 @@
 pub mod container;
 pub mod insn;
+pub mod judge;
 pub mod materialize;
 mod span;
 pub mod transform;
+#[macro_use]
+extern crate enum_map;
 
 pub use span::*;
 
