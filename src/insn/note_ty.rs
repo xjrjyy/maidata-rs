@@ -1,8 +1,3 @@
-pub trait Position {
-    fn group(&self) -> Option<char>;
-    fn index(&self) -> Option<u8>;
-}
-
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct Key {
     index: u8,
@@ -14,12 +9,16 @@ impl std::fmt::Display for Key {
     }
 }
 
-impl Position for Key {
-    fn group(&self) -> Option<char> {
-        None
+impl Key {
+    pub fn new(x: u8) -> Result<Self, KeyParseError> {
+        match x {
+            0..=7 => Ok(Key { index: x }),
+            _ => Err(KeyParseError::InvalidKey(x)),
+        }
     }
-    fn index(&self) -> Option<u8> {
-        Some(self.index)
+
+    pub fn index(&self) -> u8 {
+        self.index
     }
 }
 
@@ -32,10 +31,7 @@ impl std::convert::TryFrom<u8> for Key {
     type Error = KeyParseError;
 
     fn try_from(x: u8) -> Result<Self, Self::Error> {
-        match x {
-            0..=7 => Ok(Key { index: x }),
-            _ => Err(Self::Error::InvalidKey(x)),
-        }
+        Key::new(x)
     }
 }
 
@@ -55,11 +51,21 @@ impl std::fmt::Display for TouchSensor {
     }
 }
 
-impl Position for TouchSensor {
-    fn group(&self) -> Option<char> {
-        Some(self.group)
+impl TouchSensor {
+    pub fn new(group: char, index: Option<u8>) -> Result<Self, TouchSensorParseError> {
+        if let ('A' | 'B' | 'D' | 'E', Some(0..=7)) = (group, index) {
+            return Ok(TouchSensor { group, index });
+        }
+        if let ('C', None) = (group, index) {
+            return Ok(TouchSensor { group, index });
+        }
+        Err(TouchSensorParseError::InvalidTouchSensor(group, index))
     }
-    fn index(&self) -> Option<u8> {
+
+    pub fn group(&self) -> char {
+        self.group
+    }
+    pub fn index(&self) -> Option<u8> {
         self.index
     }
 }
@@ -73,26 +79,7 @@ impl std::convert::TryFrom<(char, Option<u8>)> for TouchSensor {
     type Error = TouchSensorParseError;
 
     fn try_from(x: (char, Option<u8>)) -> Result<Self, Self::Error> {
-        match x.0 {
-            'A' | 'B' | 'D' | 'E' => match x.1 {
-                Some(index) => match index {
-                    0..=7 => Ok(TouchSensor {
-                        group: x.0,
-                        index: Some(index),
-                    }),
-                    _ => Err(Self::Error::InvalidTouchSensor(x.0, x.1)),
-                },
-                _ => Err(Self::Error::InvalidTouchSensor(x.0, x.1)),
-            },
-            'C' => match x.1 {
-                None => Ok(TouchSensor {
-                    group: x.0,
-                    index: None,
-                }),
-                _ => Err(Self::Error::InvalidTouchSensor(x.0, x.1)),
-            },
-            _ => Err(TouchSensorParseError::InvalidTouchSensor(x.0, x.1)),
-        }
+        TouchSensor::new(x.0, x.1)
     }
 }
 

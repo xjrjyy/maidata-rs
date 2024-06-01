@@ -1,5 +1,5 @@
 use super::slide_data::SLIDE_DATA;
-use crate::insn::{Position, TouchSensor};
+use crate::insn::TouchSensor;
 use crate::transform;
 use crate::transform::{NormalizedSlideSegmentShape, NormalizedSlideTrack};
 use lazy_static::lazy_static;
@@ -37,13 +37,12 @@ impl SlidePathGetter {
                 "w" => NormalizedSlideSegmentShape::Fan,
                 _ => panic!("Invalid shape: {}", shape),
             };
-            let parse_touch_sensor = |s: &str| -> TouchSensor {
-                (
+            let parse_touch_sensor = |s: &str| {
+                TouchSensor::new(
                     s.chars().nth(0).unwrap(),
                     s[1..].parse::<u8>().map(|x| x - 1).ok(),
                 )
-                    .try_into()
-                    .unwrap()
+                .unwrap()
             };
             let raw_slide_path: Vec<_> = raw_slide_path
                 .iter()
@@ -76,8 +75,8 @@ impl SlidePathGetter {
         for group in &track.groups {
             for segment in &group.segments {
                 let path = self.slide_paths[segment.shape()]
-                    [segment.params().start.index().unwrap() as usize]
-                    [segment.params().destination.index().unwrap() as usize]
+                    [segment.params().start.index() as usize]
+                    [segment.params().destination.index() as usize]
                     .clone();
                 result.extend(path?);
             }

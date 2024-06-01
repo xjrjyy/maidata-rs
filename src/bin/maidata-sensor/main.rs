@@ -75,7 +75,7 @@ fn main() {
     println!("Time: {:?}", duration);
 }
 
-use maidata::insn::{Key, Position, TouchSensor};
+use maidata::insn::{Key, TouchSensor};
 use maidata::judge::slide_path::SLIDE_PATH_GETTER;
 use maidata::materialize::{DurationInSeconds, Note as MaterializedNote, TimestampInSeconds};
 use maidata::transform::transform::{Transformable, Transformer};
@@ -101,7 +101,7 @@ struct Note {
 }
 
 fn key_to_sensor(key: Key) -> TouchSensor {
-    ('A', key.index()).try_into().unwrap()
+    TouchSensor::new('A', Some(key.index())).unwrap()
 }
 
 #[rustfmt::skip]
@@ -223,11 +223,11 @@ fn parse_maidata(diff: &AssociatedBeatmapData) -> Option<Vec<(TimestampInSeconds
         .collect::<Vec<_>>();
 
     let get_sensor_index = |sensor: &TouchSensor| match sensor.group() {
-        Some('A') => sensor.index().unwrap(),
-        Some('B') => sensor.index().unwrap() + 8,
-        Some('C') => 16,
-        Some('D') => sensor.index().unwrap() + 17,
-        Some('E') => sensor.index().unwrap() + 25,
+        'A' => sensor.index().unwrap(),
+        'B' => sensor.index().unwrap() + 8,
+        'C' => 16,
+        'D' => sensor.index().unwrap() + 17,
+        'E' => sensor.index().unwrap() + 25,
         _ => unreachable!(),
     };
     notes.sort_by(|a, b| a.dur.start.partial_cmp(&b.dur.start).unwrap());

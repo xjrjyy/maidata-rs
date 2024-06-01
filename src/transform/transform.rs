@@ -1,4 +1,4 @@
-use crate::insn::{Key, Position, TouchSensor};
+use crate::insn::{Key, TouchSensor};
 use crate::transform::{
     NormalizedHoldParams, NormalizedSlideParams, NormalizedSlideSegment,
     NormalizedSlideSegmentGroup, NormalizedSlideSegmentParams, NormalizedSlideTrack,
@@ -19,7 +19,7 @@ pub trait Transformable {
 
 impl Transformable for Key {
     fn transform(&self, transformer: Transformer) -> Self {
-        let mut index = (self.index().unwrap() + transformer.rotation) % 8;
+        let mut index = (self.index() + transformer.rotation) % 8;
         if transformer.flip {
             index = 7 - index;
         }
@@ -29,7 +29,7 @@ impl Transformable for Key {
 
 impl Transformable for TouchSensor {
     fn transform(&self, transformer: Transformer) -> Self {
-        let group = self.group().unwrap();
+        let group = self.group();
         if group == 'C' {
             return *self;
         }

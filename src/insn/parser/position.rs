@@ -5,7 +5,7 @@ pub fn t_key(s: NomSpan) -> PResult<Key> {
     use nom::combinator::map;
 
     map(one_of("12345678"), |s| {
-        Key::try_from(s.to_digit(10).unwrap() as u8 - 1).unwrap()
+        Key::new(s.to_digit(10).unwrap() as u8 - 1).unwrap()
     })(s)
 }
 
@@ -20,7 +20,7 @@ pub fn t_touch_sensor(s: NomSpan) -> PResult<TouchSensor> {
     ))(s)?;
 
     let index = touch_sensor.1.map(|x| x.to_digit(10).unwrap() as u8 - 1);
-    Ok((s, TouchSensor::try_from((touch_sensor.0, index)).unwrap()))
+    Ok((s, TouchSensor::new(touch_sensor.0, index).unwrap()))
 }
 
 #[cfg(test)]

@@ -1,4 +1,4 @@
-use crate::insn::{Key, Position, RawNoteInsn, SlideSegment, SlideSegmentGroup, SlideTrack};
+use crate::insn::{Key, RawNoteInsn, SlideSegment, SlideSegmentGroup, SlideTrack};
 use crate::transform::{
     NormalizedHoldParams, NormalizedNote, NormalizedSlideParams, NormalizedSlideSegment,
     NormalizedSlideSegmentGroup, NormalizedSlideSegmentParams, NormalizedSlideTrack,
@@ -6,11 +6,11 @@ use crate::transform::{
 };
 
 fn key_clockwise_distance(start: Key, end: Key) -> u8 {
-    (end.index().unwrap() + 8 - start.index().unwrap()) % 8
+    (end.index() + 8 - start.index()) % 8
 }
 
 fn slide_segment_is_clockwise(start: Key, segment: &SlideSegment) -> Option<bool> {
-    let upper_half = start.index().unwrap() < 2 || start.index().unwrap() >= 6;
+    let upper_half = start.index() < 2 || start.index() >= 6;
     match segment {
         SlideSegment::Arc(params) => match key_clockwise_distance(start, params.destination) {
             1..=3 => Some(true),
@@ -170,10 +170,12 @@ mod tests {
 
     #[test]
     fn test_normalize_slide_segment() -> Result<(), Box<dyn Error>> {
+        let keys = (0..8).map(|x| Key::new(x).unwrap()).collect::<Vec<_>>();
+
         macro_rules! segment {
             ($variant: ident, $end: expr) => {
                 SlideSegment::$variant(SlideSegmentParams {
-                    destination: $end.try_into().unwrap(),
+                    destination: keys[$end],
                     interim: None,
                 })
             };
@@ -181,14 +183,14 @@ mod tests {
         macro_rules! normalized_segment {
             ($variant: ident, $start: expr, $end: expr) => {
                 NormalizedSlideSegment::$variant(NormalizedSlideSegmentParams {
-                    start: $start.try_into().unwrap(),
-                    destination: $end.try_into().unwrap(),
+                    start: keys[$start],
+                    destination: keys[$end],
                 })
             };
         }
         macro_rules! normalize {
             ($variant: ident, $start: expr, $end: expr) => {
-                normalize_slide_segment($start.try_into().unwrap(), &segment!($variant, $end))
+                normalize_slide_segment(keys[$start], &segment!($variant, $end))
             };
         }
 
@@ -242,87 +244,66 @@ mod tests {
         assert_eq!(normalize!(Pp, 0, 0), Some(normalized_segment!(BendR, 0, 0)));
 
         let segment = SlideSegment::Angle(SlideSegmentParams {
-            destination: 6.try_into().unwrap(),
-            interim: Some(2.try_into().unwrap()),
+            destination: keys[6],
+            interim: Some(keys[2]),
         });
         let expected = NormalizedSlideSegment::SkipR(NormalizedSlideSegmentParams {
-            start: 0.try_into().unwrap(),
-            destination: 6.try_into().unwrap(),
+            start: keys[0],
+            destination: keys[6],
         });
-        assert_eq!(
-            normalize_slide_segment(0.try_into().unwrap(), &segment),
-            Some(expected)
-        );
+        assert_eq!(normalize_slide_segment(keys[0], &segment), Some(expected));
 
         let segment = SlideSegment::Angle(SlideSegmentParams {
-            destination: 3.try_into().unwrap(),
-            interim: Some(6.try_into().unwrap()),
+            destination: keys[3],
+            interim: Some(keys[6]),
         });
         let expected = NormalizedSlideSegment::SkipL(NormalizedSlideSegmentParams {
-            start: 0.try_into().unwrap(),
-            destination: 3.try_into().unwrap(),
+            start: keys[0],
+            destination: keys[3],
         });
-        assert_eq!(
-            normalize_slide_segment(0.try_into().unwrap(), &segment),
-            Some(expected)
-        );
+        assert_eq!(normalize_slide_segment(keys[0], &segment), Some(expected));
 
         let segment = SlideSegment::Angle(SlideSegmentParams {
-            destination: 3.try_into().unwrap(),
-            interim: Some(5.try_into().unwrap()),
+            destination: keys[3],
+            interim: Some(keys[5]),
         });
         let expected = NormalizedSlideSegment::SkipL(NormalizedSlideSegmentParams {
-            start: 7.try_into().unwrap(),
-            destination: 3.try_into().unwrap(),
+            start: keys[7],
+            destination: keys[3],
         });
-        assert_eq!(
-            normalize_slide_segment(7.try_into().unwrap(), &segment),
-            Some(expected)
-        );
+        assert_eq!(normalize_slide_segment(keys[7], &segment), Some(expected));
 
         let segment = SlideSegment::Angle(SlideSegmentParams {
-            destination: 2.try_into().unwrap(),
-            interim: Some(0.try_into().unwrap()),
+            destination: keys[2],
+            interim: Some(keys[0]),
         });
         let expected = NormalizedSlideSegment::SkipR(NormalizedSlideSegmentParams {
-            start: 6.try_into().unwrap(),
-            destination: 2.try_into().unwrap(),
+            start: keys[6],
+            destination: keys[2],
         });
-        assert_eq!(
-            normalize_slide_segment(6.try_into().unwrap(), &segment),
-            Some(expected)
-        );
+        assert_eq!(normalize_slide_segment(keys[6], &segment), Some(expected));
 
         let segment = SlideSegment::Angle(SlideSegmentParams {
-            destination: 1.try_into().unwrap(),
-            interim: Some(6.try_into().unwrap()),
+            destination: keys[1],
+            interim: Some(keys[6]),
         });
         let expected = NormalizedSlideSegment::SkipL(NormalizedSlideSegmentParams {
-            start: 0.try_into().unwrap(),
-            destination: 1.try_into().unwrap(),
+            start: keys[0],
+            destination: keys[1],
         });
-        assert_eq!(
-            normalize_slide_segment(0.try_into().unwrap(), &segment),
-            Some(expected)
-        );
+        assert_eq!(normalize_slide_segment(keys[0], &segment), Some(expected));
 
         let segment = SlideSegment::Angle(SlideSegmentParams {
-            destination: 4.try_into().unwrap(),
-            interim: Some(7.try_into().unwrap()),
+            destination: keys[4],
+            interim: Some(keys[7]),
         });
-        assert_eq!(
-            normalize_slide_segment(0.try_into().unwrap(), &segment),
-            None
-        );
+        assert_eq!(normalize_slide_segment(keys[0], &segment), None);
 
         let segment = SlideSegment::Angle(SlideSegmentParams {
-            destination: 2.try_into().unwrap(),
-            interim: Some(2.try_into().unwrap()),
+            destination: keys[2],
+            interim: Some(keys[2]),
         });
-        assert_eq!(
-            normalize_slide_segment(0.try_into().unwrap(), &segment),
-            None
-        );
+        assert_eq!(normalize_slide_segment(keys[0], &segment), None);
 
         assert_eq!(
             normalize!(Spread, 0, 4),

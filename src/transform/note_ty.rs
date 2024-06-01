@@ -1,4 +1,4 @@
-use crate::insn::{Key, Position, TouchSensor};
+use crate::insn::{Key, TouchSensor};
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct NormalizedTapParams {
@@ -125,12 +125,12 @@ impl std::fmt::Display for NormalizedSlideSegment {
         match self {
             Self::Straight(param) => write!(f, "-{}", param.destination),
             Self::CircleL(param) => {
-                let end_index = param.destination.index().unwrap();
+                let end_index = param.destination.index();
                 let upper = !(2..6).contains(&end_index);
                 write!(f, "{}{}", if upper { '<' } else { '>' }, param.destination)
             }
             Self::CircleR(param) => {
-                let end_index = param.destination.index().unwrap();
+                let end_index = param.destination.index();
                 let upper = !(2..6).contains(&end_index);
                 write!(f, "{}{}", if upper { '>' } else { '<' }, param.destination)
             }
@@ -154,11 +154,11 @@ impl std::fmt::Display for NormalizedSlideSegment {
                 write!(f, "pp{}", param.destination)
             }
             Self::SkipL(param) => {
-                let interim = Key::try_from((param.start.index().unwrap() + 6) % 8).unwrap();
+                let interim = Key::new((param.start.index() + 6) % 8).unwrap();
                 write!(f, "V{}{}", interim, param.destination)
             }
             Self::SkipR(param) => {
-                let interim = Key::try_from((param.start.index().unwrap() + 2) % 8).unwrap();
+                let interim = Key::new((param.start.index() + 2) % 8).unwrap();
                 write!(f, "V{}{}", interim, param.destination)
             }
             Self::Fan(param) => write!(f, "w{}", param.destination),
