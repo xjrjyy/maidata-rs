@@ -6,7 +6,7 @@ use walkdir::WalkDir;
 struct BeatmapData<'a> {
     maidata: &'a Maidata,
     diff: AssociatedBeatmapData<'a>,
-    groups: Vec<(TimestampInSeconds, Vec<Note>)>,
+    groups: Vec<Vec<Note>>,
 }
 
 fn main() {
@@ -43,7 +43,6 @@ fn main() {
                 .iter()
                 .map(|group| {
                     group
-                        .1
                         .iter()
                         .map(|note| -> DurationInSeconds {
                             let slide = match &note.raw_note {
@@ -91,7 +90,7 @@ const FRAME_DURATION: DurationInSeconds = 1.0 / FRAMES_PER_SECOND;
 const TAP_JUDGE_THRESHOLD: DurationInSeconds = FRAME_DURATION * 9.0;
 const SLIDE_JUDGE_THRESHOLD: DurationInSeconds = FRAME_DURATION * 3.0;
 
-const GROUP_DUR_THRESHOLD: DurationInSeconds = 0.15;
+const GROUP_DUR_THRESHOLD: DurationInSeconds = 0.2;
 
 #[derive(Clone, Debug)]
 struct Note {
@@ -151,7 +150,7 @@ fn materialized_to_normalized_slide_segment(
     }]
 }
 
-fn parse_maidata(diff: &AssociatedBeatmapData) -> Option<Vec<(TimestampInSeconds, Vec<Note>)>> {
+fn parse_maidata(diff: &AssociatedBeatmapData) -> Option<Vec<Vec<Note>>> {
     // if !match diff.level() {
     //     Some(Level::Normal(level)) => (11..=13).contains(&level),
     //     Some(Level::Plus(level)) => (11..=13).contains(&level),
@@ -231,42 +230,49 @@ fn parse_maidata(diff: &AssociatedBeatmapData) -> Option<Vec<(TimestampInSeconds
         _ => unreachable!(),
     };
     notes.sort_by(|a, b| a.dur.start.partial_cmp(&b.dur.start).unwrap());
-    let mut groups: Vec<(TimestampInSeconds, Vec<Note>)> = notes
-        .iter()
-        .map(|note| (note.dur.end, vec![note.clone()]))
-        .collect();
-    let mut last_note_index: Vec<Option<usize>> = vec![None; 33];
+
+    let find = |parent: &mut Vec<usize>, mut x: usize| -> usize {
+        let mut y = x;
+        while parent[y] != y {
+            y = parent[y];
+        }
+        while parent[x] != x {
+            let z = parent[x];
+            parent[x] = y;
+            x = z;
+        }
+        y
+    };
+    let union = |parent: &mut Vec<usize>, x: usize, y: usize| {
+        let x = find(parent, x);
+        let y = find(parent, y);
+        parent[x] = y;
+    };
+    let mut parent = (0..notes.len()).collect::<Vec<_>>();
+    let mut sensor_info = [(0, TimestampInSeconds::NEG_INFINITY); 33];
     for (index, note) in notes.iter().enumerate() {
         note.sensors.iter().for_each(|sensor| {
             let sensor_index = get_sensor_index(sensor) as usize;
-            if let Some(last_index) = last_note_index[sensor_index] {
-                if last_index != index {
-                    if note.dur.start < groups[last_index].0 + GROUP_DUR_THRESHOLD {
-                        // TODO: it can't work because of borrow checker:
-                        // groups[index].1.extend(groups[last_index].1.drain(..));
-                        let mut tmp = Vec::new();
-                        std::mem::swap(&mut tmp, &mut groups[last_index].1);
-                        groups[index].1.extend(tmp);
-                        groups[index].0 = groups[index].0.max(groups[last_index].0);
-                    }
-                    groups[last_index].0 = TimestampInSeconds::NEG_INFINITY;
-                }
+            let (last_index, end_ts) = sensor_info.get_mut(sensor_index).unwrap();
+            if note.dur.start < *end_ts + GROUP_DUR_THRESHOLD {
+                union(&mut parent, *last_index, index);
             }
-        });
-        note.sensors.iter().for_each(|sensor| {
-            let sensor_index = get_sensor_index(sensor) as usize;
-            last_note_index[sensor_index] = Some(index);
+            *last_index = index;
+            *end_ts = end_ts.max(note.dur.end);
         });
     }
 
-    groups.retain(|group| !group.1.is_empty());
-    groups.iter_mut().for_each(|group| {
-        group
-            .1
-            .sort_by(|a, b| a.dur.start.partial_cmp(&b.dur.start).unwrap())
-    });
-
-    Some(groups)
+    let mut groups = vec![Vec::new(); notes.len()];
+    for (index, note) in notes.iter().enumerate() {
+        let group = find(&mut parent, index);
+        groups[group].push(note.clone());
+    }
+    Some(
+        groups
+            .into_iter()
+            .filter(|group| !group.is_empty())
+            .collect(),
+    )
 }
 
 fn read_file<P: AsRef<std::path::Path>>(path: P) -> String {
