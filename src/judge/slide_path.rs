@@ -1,7 +1,7 @@
 use super::slide_data::SLIDE_DATA;
 use crate::insn::TouchSensor;
 use crate::transform;
-use crate::transform::{NormalizedSlideSegmentShape, NormalizedSlideTrack};
+use crate::transform::{NormalizedSlideSegment, NormalizedSlideSegmentShape, NormalizedSlideTrack};
 use lazy_static::lazy_static;
 use transform::transform::{Transformable, Transformer};
 
@@ -69,16 +69,26 @@ impl SlidePathGetter {
         Self { slide_paths }
     }
 
+    pub fn get_by_segment(&self, segment: &NormalizedSlideSegment) -> Option<SlidePath> {
+        self.slide_paths[segment.shape()][segment.params().start.index() as usize]
+            [segment.params().destination.index() as usize]
+            .clone()
+    }
+
     // pay attention to Fan Slide
-    pub fn get(&self, track: NormalizedSlideTrack) -> Option<SlidePath> {
+    pub fn get(&self, track: &NormalizedSlideTrack) -> Option<SlidePath> {
         let mut result = SlidePath::new();
         for group in &track.groups {
             for segment in &group.segments {
-                let path = self.slide_paths[segment.shape()]
-                    [segment.params().start.index() as usize]
-                    [segment.params().destination.index() as usize]
-                    .clone();
-                result.extend(path?);
+                let path = self.get_by_segment(segment)?;
+                assert!(!path.is_empty());
+                if !result.is_empty() {
+                    // Ensure the end is in the A TouchSensor
+                    assert!(result.last().unwrap().len() == 1);
+                    assert!(result.last().unwrap() == path.first().unwrap());
+                    result.pop();
+                }
+                result.extend(path);
             }
         }
         Some(result)

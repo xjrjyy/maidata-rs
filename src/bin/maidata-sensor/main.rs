@@ -88,7 +88,7 @@ const FRAMES_PER_SECOND: DurationInSeconds = 60.0;
 const FRAME_DURATION: DurationInSeconds = 1.0 / FRAMES_PER_SECOND;
 
 const TAP_JUDGE_THRESHOLD: DurationInSeconds = FRAME_DURATION * 9.0;
-const SLIDE_JUDGE_THRESHOLD: DurationInSeconds = FRAME_DURATION * 3.0;
+const SLIDE_JUDGE_THRESHOLD: DurationInSeconds = FRAME_DURATION * 6.0;
 
 const GROUP_DUR_THRESHOLD: DurationInSeconds = 0.2;
 
@@ -106,34 +106,12 @@ fn key_to_sensor(key: Key) -> TouchSensor {
 #[rustfmt::skip]
 fn materialized_to_normalized_slide_segment(
     segment: &maidata::materialize::MaterializedSlideSegment,
-) -> Vec<NormalizedSlideSegment> {
-    if segment.shape == NormalizedSlideSegmentShape::Fan {
-        return vec![
-            NormalizedSlideSegment::Fan(NormalizedSlideSegmentParams {
-                start: segment.start,
-                destination: segment.destination.transform(Transformer {
-                    rotation: 7,
-                    flip: false,
-                })
-            }),
-            NormalizedSlideSegment::Fan(NormalizedSlideSegmentParams {
-                start: segment.start,
-                destination: segment.destination,
-            }),
-            NormalizedSlideSegment::Fan(NormalizedSlideSegmentParams {
-                start: segment.start,
-                destination: segment.destination.transform(Transformer {
-                    rotation: 1,
-                    flip: false,
-                })
-            }),
-        ]
-    }
+) -> NormalizedSlideSegment {
     let normalized_params = NormalizedSlideSegmentParams {
         start: segment.start,
         destination: segment.destination,
     };
-    vec![match segment.shape {
+    match segment.shape {
         NormalizedSlideSegmentShape::Straight => NormalizedSlideSegment::Straight(normalized_params),
         NormalizedSlideSegmentShape::CircleL => NormalizedSlideSegment::CircleL(normalized_params),
         NormalizedSlideSegmentShape::CircleR => NormalizedSlideSegment::CircleR(normalized_params),
@@ -146,8 +124,8 @@ fn materialized_to_normalized_slide_segment(
         NormalizedSlideSegmentShape::BendR => NormalizedSlideSegment::BendR(normalized_params),
         NormalizedSlideSegmentShape::SkipL => NormalizedSlideSegment::SkipL(normalized_params),
         NormalizedSlideSegmentShape::SkipR => NormalizedSlideSegment::SkipR(normalized_params),
-        NormalizedSlideSegmentShape::Fan => unreachable!(),
-    }]
+        NormalizedSlideSegmentShape::Fan => panic!("Fan shape is not supported"),
+    }
 }
 
 fn parse_maidata(diff: &AssociatedBeatmapData) -> Option<Vec<Vec<Note>>> {
@@ -187,24 +165,69 @@ fn parse_maidata(diff: &AssociatedBeatmapData) -> Option<Vec<Vec<Note>>> {
                 raw_note: note,
             },
             MaterializedNote::SlideTrack(params) => {
-                let groups = params
-                    .groups
+                let mut path = if params.groups.iter().any(|group| {
+                    group
+                        .segments
+                        .iter()
+                        .any(|segment| segment.shape == NormalizedSlideSegmentShape::Fan)
+                }) {
+                    assert!(params.groups.len() == 1 && params.groups[0].segments.len() == 1);
+                    let segment = &params.groups[0].segments[0];
+                    // TODO: handle fan slide
+                    [
+                        NormalizedSlideSegment::Fan(NormalizedSlideSegmentParams {
+                            start: segment.start,
+                            destination: segment.destination.transform(Transformer {
+                                rotation: 7,
+                                flip: false,
+                            }),
+                        }),
+                        NormalizedSlideSegment::Fan(NormalizedSlideSegmentParams {
+                            start: segment.start,
+                            destination: segment.destination,
+                        }),
+                        NormalizedSlideSegment::Fan(NormalizedSlideSegmentParams {
+                            start: segment.start,
+                            destination: segment.destination.transform(Transformer {
+                                rotation: 1,
+                                flip: false,
+                            }),
+                        }),
+                    ]
                     .iter()
-                    .map(|group| {
-                        let segments = group
-                            .segments
-                            .iter()
-                            .flat_map(materialized_to_normalized_slide_segment)
-                            .collect();
-                        NormalizedSlideSegmentGroup { segments }
+                    .flat_map(|segment| {
+                        SLIDE_PATH_GETTER
+                            .get(&NormalizedSlideTrack {
+                                groups: vec![NormalizedSlideSegmentGroup {
+                                    segments: vec![*segment],
+                                }],
+                            })
+                            .into_iter()
+                            .flatten()
+                            .flatten()
+                            .collect::<Vec<_>>()
                     })
-                    .collect();
-                let mut path = SLIDE_PATH_GETTER
-                    .get(NormalizedSlideTrack { groups })
-                    .into_iter()
-                    .flatten()
-                    .flatten()
-                    .collect::<Vec<_>>();
+                    .collect::<Vec<_>>()
+                } else {
+                    let groups = params
+                        .groups
+                        .iter()
+                        .map(|group| {
+                            let segments = group
+                                .segments
+                                .iter()
+                                .map(materialized_to_normalized_slide_segment)
+                                .collect();
+                            NormalizedSlideSegmentGroup { segments }
+                        })
+                        .collect();
+                    SLIDE_PATH_GETTER
+                        .get(&NormalizedSlideTrack { groups })
+                        .into_iter()
+                        .flatten()
+                        .flatten()
+                        .collect::<Vec<_>>()
+                };
                 path.sort();
                 path.dedup();
                 let dur = params
