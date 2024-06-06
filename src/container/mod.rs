@@ -103,6 +103,10 @@ impl<'a> AssociatedBeatmapData<'a> {
     }
 }
 
+pub fn parse_maidata_insns(x: &str) -> PResult<Vec<crate::Sp<crate::insn::RawInsn>>> {
+    crate::insn::parse_maidata_insns(NomSpan::new(x))
+}
+
 pub fn lex_maidata(x: &str) -> Maidata {
     let input = NomSpan::new(x);
     let output = lex_maidata_inner(input);
