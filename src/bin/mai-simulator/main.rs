@@ -22,10 +22,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for note in notes {
         simulator.add_note(note);
     }
-    simulator.activate_sensor(TouchSensor::new('A', Some(0)).unwrap(), 0.1);
-    simulator.activate_sensor(TouchSensor::new('A', Some(1)).unwrap(), 5.0);
-    simulator.deactivate_sensor(TouchSensor::new('A', Some(0)).unwrap(), 5.01);
-    simulator.deactivate_sensor(TouchSensor::new('A', Some(1)).unwrap(), 5.01);
+    simulator.change_sensor(TouchSensor::new('A', Some(0)).unwrap(), 0.1);
+    simulator.change_sensor(TouchSensor::new('A', Some(1)).unwrap(), 5.0);
+    simulator.change_sensor(TouchSensor::new('A', Some(0)).unwrap(), 5.01);
+    simulator.change_sensor(TouchSensor::new('A', Some(1)).unwrap(), 5.01);
     simulator.print_judge_result();
 
     Ok(())

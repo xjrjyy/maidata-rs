@@ -62,37 +62,32 @@ impl MaiSimulator {
         }
     }
 
-    pub fn activate_sensor(&mut self, sensor: TouchSensor, current_time: f32) {
-        if self.sensor_states.sensor_is_on(sensor) {
-            return;
-        }
-        self.sensor_states.activate_sensor(sensor);
-        let notes_judge_on = self.notes_judge_on.get_mut(&sensor).unwrap();
-        while let Some(&note_index) = notes_judge_on.front() {
-            let note = &mut self.notes[note_index];
-            let consumed = if note.is_too_late(current_time) {
-                note.judge(&self.sensor_states, current_time);
-                false
-            } else {
-                note.on_sensor(current_time)
-            };
-            if note.get_judge_result().is_some() {
-                self.note_is_judged[note_index] = true;
-                notes_judge_on.pop_front();
-            }
-            if consumed {
-                break;
-            }
-        }
-        self.update_sensor_change(current_time);
-    }
-
-    pub fn deactivate_sensor(&mut self, sensor: TouchSensor, current_time: f32) {
+    // return true if sensor turns on
+    pub fn change_sensor(&mut self, sensor: TouchSensor, current_time: f32) -> bool {
         if !self.sensor_states.sensor_is_on(sensor) {
-            return;
+            self.sensor_states.activate_sensor(sensor);
+            let notes_judge_on = self.notes_judge_on.get_mut(&sensor).unwrap();
+            while let Some(&note_index) = notes_judge_on.front() {
+                let note = &mut self.notes[note_index];
+                let consumed = if note.is_too_late(current_time) {
+                    note.judge(&self.sensor_states, current_time);
+                    false
+                } else {
+                    note.on_sensor(current_time)
+                };
+                if note.get_judge_result().is_some() {
+                    self.note_is_judged[note_index] = true;
+                    notes_judge_on.pop_front();
+                }
+                if consumed {
+                    break;
+                }
+            }
+        } else {
+            self.sensor_states.deactivate_sensor(sensor);
         }
-        self.sensor_states.deactivate_sensor(sensor);
         self.update_sensor_change(current_time);
+        self.sensor_states.sensor_is_on(sensor)
     }
 
     pub fn print_judge_result(&mut self) {
