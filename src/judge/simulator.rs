@@ -30,9 +30,9 @@ impl MaiSimulator {
     pub fn add_note(&mut self, note: Note) {
         if let Some(sensor) = note.get_sensor() {
             let notes_judge_on = self.notes_judge_on.get_mut(&sensor).unwrap();
-            if let Some(last_note_index) = notes_judge_on.back() {
-                let last_note = &self.notes[*last_note_index];
-                if last_note.get_start_time() >= note.get_start_time() {
+            if let Some(&last_note_index) = notes_judge_on.back() {
+                let last_note = &self.notes[last_note_index];
+                if last_note.get_start_time() > note.get_start_time() {
                     panic!("note's start time is earlier than last note's start time");
                 }
             }
