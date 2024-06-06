@@ -75,8 +75,7 @@ pub fn get_all_sensors() -> Vec<TouchSensor> {
     let mut sensors = Vec::new();
     for group in "ABDE".chars() {
         for i in 0..8 {
-            let sensor = TouchSensor::new(group, Some(i)).unwrap();
-            sensors.push(sensor);
+            sensors.push(TouchSensor::new(group, Some(i)).unwrap());
         }
     }
     sensors.push(TouchSensor::new('C', None).unwrap());
@@ -217,6 +216,10 @@ impl JudgeNote for Note {
 
     fn is_too_late(&self, current_time: f32) -> bool {
         self.get_impl().is_too_late(current_time)
+    }
+
+    fn get_sensor(&self) -> Option<TouchSensor> {
+        self.get_impl().get_sensor()
     }
 
     fn on_sensor(&mut self, current_time: f32) -> bool {
