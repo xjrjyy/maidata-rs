@@ -9,7 +9,7 @@ extern crate enum_map;
 
 pub use span::*;
 
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, PartialOrd, Ord, Hash, Debug)]
 pub enum Difficulty {
     /// The EASY difficulty.
     Easy = 1,

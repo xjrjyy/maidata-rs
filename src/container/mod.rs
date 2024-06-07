@@ -218,6 +218,7 @@ pub fn lex_maidata(x: &str) -> Maidata {
 
     // put parsed difficulties into result
     result.difficulties.extend(diff_map.into_values());
+    result.difficulties.sort_by_key(|x| x.difficulty);
 
     result
 }
