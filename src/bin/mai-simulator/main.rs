@@ -28,6 +28,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     simulator.change_sensor(TouchSensor::new('A', Some(1)).unwrap(), 5.0);
     simulator.change_sensor(TouchSensor::new('A', Some(0)).unwrap(), 5.01);
     simulator.change_sensor(TouchSensor::new('A', Some(1)).unwrap(), 5.01);
+    simulator.finish();
     simulator.print_judge_result();
 
     Ok(())

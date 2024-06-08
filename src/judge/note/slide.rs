@@ -174,8 +174,8 @@ impl JudgeNote for Slide {
         assert!(self.result.is_none());
         // Do not judge if too late
         if self.is_too_late(current_time) {
-            assert!(self.judge_index + 1 < self.path.len());
-            self.result = Some(if self.judge_index + 2 == self.path.len() {
+            assert!(self.judge_index < self.path.len());
+            self.result = Some(if self.judge_index + 1 == self.path.len() {
                 Timing::LateGood
             } else {
                 Timing::TooLate

@@ -6,10 +6,10 @@ use std::collections::{HashMap, VecDeque};
 pub struct MaiSimulator {
     sensor_states: TouchSensorStates,
 
-    notes: Vec<Note>,
+    pub notes: Vec<Note>,
     notes_judge_on: HashMap<TouchSensor, VecDeque<usize>>,
     notes_judge_change: Vec<usize>,
-    note_is_judged: Vec<bool>,
+    pub note_is_judged: Vec<bool>,
 
     worst_judge_result: Option<Timing>,
 }
@@ -43,6 +43,20 @@ impl MaiSimulator {
         self.worst_judge_result
     }
 
+    pub fn update_too_late(&mut self, current_time: f32) {
+        for note_index in 0..self.notes.len() {
+            if self.note_is_judged[note_index] {
+                continue;
+            }
+            let note = &mut self.notes[note_index];
+            if note.get_end_time() <= current_time {
+                note.judge(&self.sensor_states, current_time);
+                assert!(note.get_judge_result().is_some());
+                self.add_judged_note(note_index);
+            }
+        }
+    }
+
     fn add_judged_note(&mut self, note_index: usize) {
         assert!(!self.note_is_judged[note_index]);
         self.note_is_judged[note_index] = true;
@@ -70,20 +84,26 @@ impl MaiSimulator {
             notes_judge_on.push_back(self.notes.len());
         }
 
-        if matches!(
-            note,
-            Note::Hold(_) | Note::TouchHold(_) | Note::Slide(_) | Note::FanSlide(_)
-        ) {
-            self.notes_judge_change.push(self.notes.len());
-        }
-
         self.notes.push(note);
         self.note_is_judged.push(false);
+
+        if matches!(
+            &self.notes.last().unwrap(),
+            &Note::Hold(_) | &Note::TouchHold(_) | &Note::Slide(_) | &Note::FanSlide(_)
+        ) {
+            self.notes_judge_change.push(self.notes.len() - 1);
+            // TODO: fix this
+            self.update_sensor_change(self.notes.last().unwrap().get_start_time());
+        }
     }
 
     fn update_sensor_change(&mut self, current_time: f32) {
         for i in (0..self.notes_judge_change.len()).rev() {
             let note_index = self.notes_judge_change[i];
+            if self.note_is_judged[note_index] {
+                self.notes_judge_change.swap_remove(i);
+                continue;
+            }
             let note = &mut self.notes[note_index];
             note.judge(&self.sensor_states, current_time);
             if note.get_judge_result().is_some() {
@@ -128,7 +148,7 @@ impl MaiSimulator {
         self.sensor_states.sensor_is_on(sensor)
     }
 
-    pub fn print_judge_result(&mut self) {
+    pub fn finish(&mut self) {
         for note_index in 0..self.notes.len() {
             let note = &mut self.notes[note_index];
             if self.note_is_judged[note_index] {
@@ -145,9 +165,11 @@ impl MaiSimulator {
 
         assert!(self.notes_judge_change.is_empty());
         assert!(self.note_is_judged.iter().all(|&is_judged| is_judged));
+    }
 
+    pub fn print_judge_result(&mut self) {
         for note in &self.notes {
-            println!("{:?}", note.get_judge_result().unwrap());
+            println!("{:?}", note.get_judge_result());
         }
     }
 }
