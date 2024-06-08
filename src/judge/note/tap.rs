@@ -1,4 +1,6 @@
-use super::{key_to_sensor, JudgeNote, JudgeType, Timing, TouchSensorStates, JUDGE_DATA};
+use super::{
+    key_to_sensor, JudgeNote, JudgeType, OnSensorResult, Timing, TouchSensorStates, JUDGE_DATA,
+};
 use crate::insn::TouchSensor;
 use crate::materialize::MaterializedTap;
 
@@ -44,13 +46,17 @@ impl JudgeNote for Tap {
         Some(self.sensor)
     }
 
-    fn on_sensor(&mut self, current_time: f32) -> bool {
+    fn on_sensor(&mut self, current_time: f32) -> OnSensorResult {
         assert!(self.result.is_none());
         if self.is_too_fast(current_time) {
-            return false;
+            return OnSensorResult::TooFast;
         }
         self.result = Some(JUDGE_DATA.get_timing(self.judge_type, current_time - self.appear_time));
-        self.result != Some(Timing::TooLate)
+        if self.result != Some(Timing::TooLate) {
+            OnSensorResult::Consumed
+        } else {
+            OnSensorResult::TooLate
+        }
     }
 
     fn judge(&mut self, _simulator: &TouchSensorStates, current_time: f32) {

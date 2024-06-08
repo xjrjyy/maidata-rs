@@ -135,8 +135,8 @@ pub trait JudgeNote {
         None
     }
     // return true if consumed
-    fn on_sensor(&mut self, _current_time: f32) -> bool {
-        false
+    fn on_sensor(&mut self, _current_time: f32) -> OnSensorResult {
+        OnSensorResult::TooLate
     }
     fn judge(&mut self, _getter: &TouchSensorStates, _current_time: f32);
 
@@ -201,6 +201,13 @@ impl TryFrom<MaterializedNote> for Note {
     }
 }
 
+#[derive(Clone, Debug)]
+pub enum OnSensorResult {
+    TooFast,
+    Consumed,
+    TooLate,
+}
+
 impl JudgeNote for Note {
     fn get_start_time(&self) -> f32 {
         self.get_impl().get_start_time()
@@ -222,7 +229,7 @@ impl JudgeNote for Note {
         self.get_impl().get_sensor()
     }
 
-    fn on_sensor(&mut self, current_time: f32) -> bool {
+    fn on_sensor(&mut self, current_time: f32) -> OnSensorResult {
         self.get_impl_mut().on_sensor(current_time)
     }
 

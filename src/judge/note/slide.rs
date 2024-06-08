@@ -18,9 +18,9 @@ pub struct Slide {
     judge_check_sensor_3: bool,
 
     judge_type: JudgeType,
-    judge_index: usize,
-    judge_is_on: bool,
-    judge_sub_sensor: Option<TouchSensor>,
+    pub judge_index: usize,
+    pub judge_is_on: bool,
+    pub judge_sub_sensor: Option<TouchSensor>,
 
     result: Option<Timing>,
 }
@@ -133,7 +133,7 @@ impl Slide {
         false
     }
 
-    fn is_next_sensor_check(&self) -> bool {
+    pub fn is_next_sensor_check(&self) -> bool {
         if self.judge_is_on {
             return true;
         }
