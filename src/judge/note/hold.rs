@@ -51,7 +51,7 @@ impl JudgeNote for Hold {
     fn get_end_time(&self) -> f32 {
         f32::max(
             self.appear_time
-                + JUDGE_DATA.judge_param(self.head_judge_type).as_ref()[Timing::TooLate],
+                + JUDGE_DATA.judge_param(self.head_judge_type).as_ref()[Timing::LateGood],
             self.tail_time,
         )
     }
