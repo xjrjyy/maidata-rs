@@ -13,8 +13,8 @@ pub struct Hold {
     pub _is_ex: bool,
 
     head_judge_type: JudgeType,
-    head_result: Option<Timing>,
-    prev_state: Option<bool>,
+    pub head_result: Option<Timing>,
+    pub prev_state: Option<bool>,
     prev_time: Option<f32>,
     release_time: f32,
 
@@ -89,12 +89,16 @@ impl JudgeNote for Hold {
             && self.appear_time + JUDGE_DATA.judge_hold_head_s()
                 <= self.tail_time - JUDGE_DATA.judge_hold_tail_s()
         {
-            self.release_time +=
+            self.release_time += f32::max(
                 f32::min(
                     current_time,
                     self.tail_time - JUDGE_DATA.judge_hold_tail_s(),
-                ) - f32::max(prev_time, self.appear_time + JUDGE_DATA.judge_hold_head_s());
+                ) - f32::max(prev_time, self.appear_time + JUDGE_DATA.judge_hold_head_s()),
+                0.0,
+            );
         }
+        self.prev_state = Some(curr_state);
+        self.prev_time = Some(current_time);
         if self.is_too_late(current_time) {
             self.result = Some(JUDGE_DATA.get_hold_timing(
                 self.tail_time - self.appear_time,

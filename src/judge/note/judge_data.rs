@@ -233,8 +233,9 @@ impl JudgeData {
         if dur_time < 0.0 {
             return head_reault;
         }
-        assert!(release_time <= dur_time);
-        let release_percent = f32::ceil(release_time / dur_time * 100.0) as i32;
+        // TODO: fix this
+        assert!(release_time - f32::EPSILON <= dur_time);
+        let release_percent = f32::ceil((release_time - f32::EPSILON) / dur_time * 100.0) as i32;
         for (i, &percent) in self.hold_judge_percent.iter().enumerate() {
             if release_percent <= percent {
                 return self.hold_judge_param[i][head_reault];
