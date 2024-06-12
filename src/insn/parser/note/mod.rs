@@ -14,12 +14,10 @@ fn t_len_spec_beats(s: NomSpan) -> PResult<Length> {
     use nom::character::complete::char;
     use nom::character::complete::digit1;
 
+    // TODO: support floating point
     let (s, divisor_str) = digit1(s)?;
-    let (s, _) = multispace0(s)?;
-    let (s, _) = char(':')(s)?;
-    let (s, _) = multispace0(s)?;
-    let (s, num_str) = digit1(s)?;
-    let (s, _) = multispace0(s)?;
+    let (s, _) = ws(char(':'))(s)?;
+    let (s, num_str) = ws(digit1)(s)?;
 
     // TODO: handle conversion errors
     let divisor = divisor_str.fragment().parse().unwrap();
@@ -30,7 +28,6 @@ fn t_len_spec_beats(s: NomSpan) -> PResult<Length> {
 
 fn t_len_spec_absolute(s: NomSpan) -> PResult<Length> {
     let (s, dur) = t_absolute_duration(s)?;
-    let (s, _) = multispace0(s)?;
 
     Ok((s, Length::Seconds(dur)))
 }
@@ -45,13 +42,9 @@ fn t_len(s: NomSpan) -> PResult<Length> {
     use nom::character::complete::char;
 
     // TODO: star-time/BPM overrides
-    let (s, _) = multispace0(s)?;
     let (s, _) = char('[')(s)?;
-    let (s, _) = multispace0(s)?;
-    let (s, len) = t_len_spec(s)?;
-    let (s, _) = multispace0(s)?;
-    let (s, _) = char(']')(s)?;
-    let (s, _) = multispace0(s)?;
+    let (s, len) = ws(t_len_spec)(s)?;
+    let (s, _) = ws(char(']'))(s)?;
 
     Ok((s, len))
 }
@@ -80,7 +73,7 @@ mod tests {
     fn test_t_tap_param() -> Result<(), Box<dyn Error>> {
         use tap::t_tap_param;
         assert_eq!(
-            test_parser_ok!(t_tap_param, " 1 ", ","),
+            test_parser_ok!(t_tap_param, "1", " ,"),
             TapParams {
                 is_break: false,
                 is_ex: false,
@@ -88,7 +81,7 @@ mod tests {
             }
         );
         assert_eq!(
-            test_parser_ok!(t_tap_param, "1b x", ""),
+            test_parser_ok!(t_tap_param, "1 b x", ""),
             TapParams {
                 is_break: true,
                 is_ex: true,
@@ -105,6 +98,7 @@ mod tests {
         );
 
         test_parser_err!(t_tap_param, "");
+        test_parser_err!(t_tap_param, " 1");
         test_parser_err!(t_tap_param, "x1");
 
         Ok(())
@@ -114,14 +108,14 @@ mod tests {
     fn test_t_touch_param() -> Result<(), Box<dyn Error>> {
         use touch::t_touch_param;
         assert_eq!(
-            test_parser_ok!(t_touch_param, " B7 ", ","),
+            test_parser_ok!(t_touch_param, "B7", " ,"),
             TouchParams {
                 is_firework: false,
                 sensor: ('B', Some(6)).try_into().unwrap(),
             }
         );
         assert_eq!(
-            test_parser_ok!(t_touch_param, "C 1f", ""),
+            test_parser_ok!(t_touch_param, "C 1 f", ""),
             TouchParams {
                 is_firework: true,
                 sensor: ('C', None).try_into().unwrap(),
@@ -129,6 +123,7 @@ mod tests {
         );
 
         test_parser_err!(t_touch_param, "");
+        test_parser_err!(t_touch_param, " A1");
         test_parser_err!(t_touch_param, "Af2");
 
         Ok(())

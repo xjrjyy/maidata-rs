@@ -12,11 +12,11 @@ pub fn t_key(s: NomSpan) -> PResult<Key> {
 pub fn t_touch_sensor(s: NomSpan) -> PResult<TouchSensor> {
     use nom::character::complete::{char, one_of};
     use nom::combinator::{map, opt};
-    use nom::sequence::separated_pair;
+    use nom::sequence::pair;
 
     let (s, touch_sensor) = nom::branch::alt((
-        separated_pair(one_of("ABDE"), multispace0, map(one_of("12345678"), Some)),
-        separated_pair(char('C'), multispace0, map(opt(one_of("12")), |_| None)),
+        pair(one_of("ABDE"), ws(map(one_of("12345678"), Some))),
+        pair(char('C'), ws(map(opt(one_of("12")), |_| None))),
     ))(s)?;
 
     let index = touch_sensor.1.map(|x| x.to_digit(10).unwrap() as u8 - 1);

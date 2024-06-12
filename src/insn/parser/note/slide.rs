@@ -12,15 +12,11 @@ pub fn t_slide_len_custom(s: NomSpan) -> PResult<SlideLength> {
     use nom::character::complete::char;
     use nom::number::complete::float;
 
-    let (s, _) = multispace0(s)?;
     let (s, _) = char('[')(s)?;
-    let (s, _) = multispace0(s)?;
-    let (s, x1) = float(s)?;
-    let (s, _) = multispace0(s)?;
-    let (s, _) = char('#')(s)?;
-    let (s, len) = t_len_spec(s)?;
-    let (s, _) = char(']')(s)?;
-    let (s, _) = multispace0(s)?;
+    let (s, x1) = ws(float)(s)?;
+    let (s, _) = ws(char('#'))(s)?;
+    let (s, len) = ws(t_len_spec)(s)?;
+    let (s, _) = ws(char(']'))(s)?;
 
     // TODO: following cases are possible in this combinator:
     //
@@ -50,11 +46,8 @@ macro_rules! define_slide_segment {
             use nom::character::complete::char;
             use nom::bytes::complete::tag;
 
-            let (s, _) = multispace0(s)?;
             let (s, _) = $recog(s)?;
-            let (s, _) = multispace0(s)?;
-            let (s, destination) = t_key(s)?;
-            let (s, _) = multispace0(s)?;
+            let (s, destination) = ws(t_key)(s)?;
 
             Ok((
                 s,
@@ -91,13 +84,9 @@ define_slide_segment!(t_slide_segment_spread, char 'w', Spread);
 pub fn t_slide_segment_angle(s: NomSpan) -> PResult<SlideSegment> {
     use nom::character::complete::char;
 
-    let (s, _) = multispace0(s)?;
     let (s, _) = char('V')(s)?;
-    let (s, _) = multispace0(s)?;
-    let (s, interim) = t_key(s)?;
-    let (s, _) = multispace0(s)?;
-    let (s, destination) = t_key(s)?;
-    let (s, _) = multispace0(s)?;
+    let (s, interim) = ws(t_key)(s)?;
+    let (s, destination) = ws(t_key)(s)?;
 
     Ok((
         s,
@@ -129,32 +118,22 @@ pub fn t_slide_segment(s: NomSpan) -> PResult<SlideSegment> {
 pub fn t_slide_segment_group(s: NomSpan) -> PResult<(SlideSegmentGroup, bool)> {
     use nom::character::complete::char;
     use nom::combinator::opt;
-    use nom::multi::many1;
 
-    let (s, _) = multispace0(s)?;
     // TODO: track with different speed
-    let (s, segments) = many1(t_slide_segment)(s)?;
-    let (s, _) = multispace0(s)?;
-    let (s, is_break) = opt(char('b'))(s)?;
-    let (s, _) = multispace0(s)?;
-    let (s, len) = t_slide_len(s)?;
-    let (s, _) = multispace0(s)?;
+    let (s, segments) = ws_list1(t_slide_segment)(s)?;
+    let (s, is_break) = opt(ws(char('b')))(s)?;
+    let (s, len) = ws(t_slide_len)(s)?;
     let (s, is_break) = match is_break {
         Some(_) => (s, is_break),
-        None => opt(char('b'))(s)?,
+        None => opt(ws(char('b')))(s)?,
     };
-    let (s, _) = multispace0(s)?;
 
     Ok((s, (SlideSegmentGroup { segments, len }, is_break.is_some())))
 }
 
 pub fn t_slide_track(s: NomSpan) -> PResult<SlideTrack> {
-    use nom::multi::many1;
-
-    let (s, _) = multispace0(s)?;
     // TODO: track with different speed
-    let (s, groups) = many1(t_slide_segment_group)(s)?;
-    let (s, _) = multispace0(s)?;
+    let (s, groups) = ws_list1(t_slide_segment_group)(s)?;
     // it is slightly different from the official syntax
     let is_break = groups.iter().any(|(_, is_break)| *is_break);
 
@@ -170,11 +149,8 @@ pub fn t_slide_track(s: NomSpan) -> PResult<SlideTrack> {
 pub fn t_slide_sep_track(s: NomSpan) -> PResult<SlideTrack> {
     use nom::character::complete::char;
 
-    let (s, _) = multispace0(s)?;
     let (s, _) = char('*')(s)?;
-    let (s, _) = multispace0(s)?;
-    let (s, track) = t_slide_track(s)?;
-    let (s, _) = multispace0(s)?;
+    let (s, track) = ws(t_slide_track)(s)?;
 
     Ok((s, track))
 }
@@ -182,13 +158,11 @@ pub fn t_slide_sep_track(s: NomSpan) -> PResult<SlideTrack> {
 pub fn t_slide(s: NomSpan) -> PResult<SpRawNoteInsn> {
     use nom::multi::many0;
 
-    let (s, _) = multispace0(s)?;
     let (s, start_loc) = nom_locate::position(s)?;
     let (s, start) = tap::t_tap_param(s)?;
-    let (s, first_track) = t_slide_track(s)?;
-    let (s, rest_track) = many0(t_slide_sep_track)(s)?;
+    let (s, first_track) = ws(t_slide_track)(s)?;
+    let (s, rest_track) = many0(ws(t_slide_sep_track))(s)?;
     let (s, end_loc) = nom_locate::position(s)?;
-    let (s, _) = multispace0(s)?;
 
     let tracks = {
         let mut tmp = Vec::with_capacity(rest_track.len() + 1);
