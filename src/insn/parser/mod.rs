@@ -4,7 +4,7 @@ mod position;
 use super::*;
 use crate::{NomSpan, PResult, WithSpan};
 use nom::character::complete::multispace0;
-use note::*;
+use note::{t_bundle, t_single_note, t_tap_multi_simplified};
 use position::*;
 
 pub(crate) fn parse_maidata_insns(s: NomSpan) -> PResult<Vec<SpRawInsn>> {
