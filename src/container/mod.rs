@@ -105,7 +105,7 @@ pub fn parse_maidata_insns(x: &str) -> PResult<Vec<crate::Sp<crate::insn::RawIns
     crate::insn::parse_maidata_insns(NomSpan::new(x))
 }
 
-pub fn lex_maidata(x: &str) -> Maidata {
+pub fn lex_maidata(x: &str) -> Result<Maidata, String> {
     let input = NomSpan::new(x);
     let output = lex_maidata_inner(input);
 
@@ -141,8 +141,7 @@ pub fn lex_maidata(x: &str) -> Maidata {
                             .entry($diff)
                             .or_insert(BeatmapData::default_with_difficulty($diff));
                         data.insns = crate::insn::parse_maidata_insns(kv.val)
-                            .ok()
-                            .expect("parse insns failed")
+                            .map_err(|e| e.to_string())?
                             .1;
                         handled = true;
                     }
@@ -218,7 +217,7 @@ pub fn lex_maidata(x: &str) -> Maidata {
     result.difficulties.extend(diff_map.into_values());
     result.difficulties.sort_by_key(|x| x.difficulty);
 
-    result
+    Ok(result)
 }
 
 fn lex_maidata_inner(s: NomSpan) -> PResult<Vec<KeyVal>> {

@@ -1,7 +1,7 @@
 use std::{ops::Deref, time::Instant};
 use walkdir::WalkDir;
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let dir = std::env::args().nth(1).expect("usage: $0 <path/to/charts>");
 
     let start = Instant::now();
@@ -12,17 +12,19 @@ fn main() {
         .filter(|e| !e.file_type().is_dir())
     {
         if entry.file_name() == "maidata.txt" {
-            parse_maidata(entry.path());
+            parse_maidata(entry.path())?;
         }
     }
 
     let duration = start.elapsed();
     println!("Time: {:?}", duration);
+
+    Ok(())
 }
 
-fn parse_maidata<P: AsRef<std::path::Path>>(path: P) {
+fn parse_maidata<P: AsRef<std::path::Path>>(path: P) -> Result<(), Box<dyn std::error::Error>> {
     let content = read_file(path);
-    let maidata = maidata::container::lex_maidata(&content);
+    let maidata = maidata::container::lex_maidata(&content)?;
 
     for diff in maidata.iter_difficulties() {
         diff.iter_insns().for_each(|insn| {
@@ -30,6 +32,8 @@ fn parse_maidata<P: AsRef<std::path::Path>>(path: P) {
             println!("{:?}", insn);
         });
     }
+
+    Ok(())
 }
 
 fn read_file<P: AsRef<std::path::Path>>(path: P) -> String {

@@ -105,7 +105,7 @@ where
     F: Fn(&AssociatedBeatmapData) -> bool,
 {
     let content = read_file(path);
-    let maidata = maidata::container::lex_maidata(&content);
+    let maidata = maidata::container::lex_maidata(&content).unwrap();
 
     maidata
         .iter_difficulties()

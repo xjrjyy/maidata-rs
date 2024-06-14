@@ -9,7 +9,7 @@ struct BeatmapData<'a> {
     groups: Vec<Vec<Note>>,
 }
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let dir = std::env::args().nth(1).expect("usage: $0 <path/to/charts>");
 
     let start = Instant::now();
@@ -20,7 +20,7 @@ fn main() {
         .filter(|e| !e.file_type().is_dir() && e.file_name() == "maidata.txt")
         .map(|e| read_file(e.path()))
         .map(|content| maidata::container::lex_maidata(&content))
-        .collect::<Vec<_>>();
+        .collect::<Result<Vec<Maidata>, _>>()?;
     let beatmap_data_vec = maidata_vec
         .iter()
         .flat_map(|maidata| {
@@ -72,6 +72,8 @@ fn main() {
 
     let duration = start.elapsed();
     println!("Time: {:?}", duration);
+
+    Ok(())
 }
 
 use maidata::insn::{Key, TouchSensor};

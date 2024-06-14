@@ -19,12 +19,12 @@ fn print_raw_insn(insn: &RawInsn) {
     }
 }
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let filename = std::env::args()
         .nth(1)
         .expect("usage: $0 <path/to/maidata.txt>");
     let content = read_file(filename);
-    let maidata = maidata::container::lex_maidata(&content);
+    let maidata = maidata::container::lex_maidata(&content)?;
 
     println!("title = {}", maidata.title());
     println!("artist = {}", maidata.artist());
@@ -58,6 +58,8 @@ fn main() {
             print_raw_insn(insn.deref());
         }
     }
+
+    Ok(())
 }
 
 fn read_file<P: AsRef<std::path::Path>>(path: P) -> String {
