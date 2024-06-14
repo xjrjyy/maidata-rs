@@ -29,7 +29,8 @@
     - [x] BOTH/EACH TAP 简化形式 (`16` `38` 等；`123` 之类的多押也允许)
     - [x] BREAK 修饰符 `Bb,`
     - [x] EX NOTES 修饰符 `Bx,` (3simai)
-    - [ ] 强制星星形状修饰符 `B$,` `Bb$, B$b,` `B$$,`
+    - [ ] 强制星星形状修饰符 `B$,` `B$$,`
+    - [ ] SLIDE 头修饰符 `B@,` `B?xE,` `B!xE,`
 * [x] HOLD `Bh[duration],`
     - [x] BREAK 修饰符 `Bbh[duration],` (3simai)
 * [x] SLIDE `FxE[duration],`

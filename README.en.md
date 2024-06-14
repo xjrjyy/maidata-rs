@@ -30,7 +30,8 @@ Map definition instructions:
     - [x] simplified BOTH/EACH TAP form (`16` `38` etc.; `123` and such are also allowed)
     - [x] BREAK modifier `Bb,`
     - [x] EX NOTES modifier `Bx,` (3simai)
-    - [ ] star-shape modifier `B$,` `Bb$, B$b,` `B$$,`
+    - [ ] star-shape modifier `B$,` `B$$,`
+    - [ ] SLIDE head modifier `B@,` `B?xE,` `B!xE,`
 * [x] HOLD `Bh[duration],`
     - [x] BREAK modifier `Bbh[duration],` (3simai)
 * [x] SLIDE `FxE[duration],`
