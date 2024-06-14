@@ -174,9 +174,9 @@ fn materialize_slide_track(
     // slide track
     //
     // take care of this, falling back to beat duration of current bpm
-    let stop_time = match track.groups.last().unwrap().len {
-        insn::SlideLength::Simple(_) => beat_dur,
-        insn::SlideLength::Custom(st, _) => stop_time_spec_to_dur(st),
+    let stop_time = match track.groups.last().unwrap().dur {
+        insn::SlideDuration::Simple(_) => beat_dur,
+        insn::SlideDuration::Custom(st, _) => stop_time_spec_to_dur(st),
     };
 
     let start_ts = ts + stop_time;
@@ -219,7 +219,7 @@ fn materialize_slide_segment_group(
         .collect();
 
     MaterializedSlideSegmentGroup {
-        dur: materialize_duration(group.len.slide_duration(), beat_dur),
+        dur: materialize_duration(group.dur.slide_duration(), beat_dur),
         segments,
     }
 }
@@ -243,7 +243,7 @@ fn materialize_slide_segment(
 fn materialize_hold_params(ts: f32, beat_dur: f32, p: &insn::HoldParams) -> MaterializedHold {
     MaterializedHold {
         ts,
-        dur: materialize_duration(p.len, beat_dur),
+        dur: materialize_duration(p.dur, beat_dur),
         key: p.key,
         is_break: p.is_break,
         is_ex: p.is_ex,
@@ -257,15 +257,15 @@ fn materialize_touch_hold_params(
 ) -> MaterializedTouchHold {
     MaterializedTouchHold {
         ts,
-        dur: materialize_duration(p.len, beat_dur),
+        dur: materialize_duration(p.dur, beat_dur),
         sensor: p.sensor,
     }
 }
 
-fn materialize_duration(x: insn::Length, beat_dur: f32) -> f32 {
+fn materialize_duration(x: insn::Duration, beat_dur: f32) -> f32 {
     match x {
-        insn::Length::NumBeats(p) => divide_beat(beat_dur, p.divisor) * (p.num as f32),
-        insn::Length::Seconds(x) => x,
+        insn::Duration::NumBeats(p) => divide_beat(beat_dur, p.divisor) * (p.num as f32),
+        insn::Duration::Seconds(x) => x,
     }
 }
 

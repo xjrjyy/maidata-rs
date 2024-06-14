@@ -1,3 +1,4 @@
+use super::duration::t_dur;
 use super::*;
 
 pub fn t_touch_hold(s: NomSpan) -> PResult<SpRawNoteInsn> {
@@ -12,7 +13,7 @@ pub fn t_touch_hold(s: NomSpan) -> PResult<SpRawNoteInsn> {
         Some(_) => (s, is_firework),
         None => opt(ws(char('f')))(s)?,
     };
-    let (s, len) = ws(t_len)(s)?;
+    let (s, dur) = ws(t_dur)(s)?;
     let (s, end_loc) = nom_locate::position(s)?;
 
     let span = (start_loc, end_loc);
@@ -21,7 +22,7 @@ pub fn t_touch_hold(s: NomSpan) -> PResult<SpRawNoteInsn> {
         RawNoteInsn::TouchHold(TouchHoldParams {
             is_firework: is_firework.is_some(),
             sensor,
-            len,
+            dur,
         })
         .with_span(span),
     ))

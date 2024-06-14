@@ -1,43 +1,44 @@
+use super::duration::{t_dur, t_dur_spec};
 use super::tap;
 use super::*;
 
-pub fn t_slide_len_simple(s: NomSpan) -> PResult<SlideLength> {
-    let (s, len) = t_len(s)?;
+pub fn t_slide_dur_simple(s: NomSpan) -> PResult<SlideDuration> {
+    let (s, dur) = t_dur(s)?;
 
-    Ok((s, SlideLength::Simple(len)))
+    Ok((s, SlideDuration::Simple(dur)))
 }
 
-// NOTE: must run after t_slide_len_simple
-pub fn t_slide_len_custom(s: NomSpan) -> PResult<SlideLength> {
+// NOTE: must run after t_slide_dur_simple
+pub fn t_slide_dur_custom(s: NomSpan) -> PResult<SlideDuration> {
     use nom::character::complete::char;
     use nom::number::complete::float;
 
     let (s, _) = char('[')(s)?;
     let (s, x1) = ws(float)(s)?;
     let (s, _) = ws(char('#'))(s)?;
-    let (s, len) = ws(t_len_spec)(s)?;
+    let (s, dur) = ws(t_dur_spec)(s)?;
     let (s, _) = ws(char(']'))(s)?;
 
     // TODO: following cases are possible in this combinator:
     //
-    // - `[160#8:3]` -> stop time=(as in BPM 160) len=8:3
-    // - `[3##1.5]` -> stop time=(absolute 3s) len=1.5s
-    let stop_time_spec = match len {
-        Length::NumBeats(_) => SlideStopTimeSpec::Bpm(x1),
-        Length::Seconds(_) => SlideStopTimeSpec::Seconds(x1),
+    // - `[160#8:3]` -> stop time=(as in BPM 160) dur=8:3
+    // - `[3##1.5]` -> stop time=(absolute 3s) dur=1.5s
+    let stop_time_spec = match dur {
+        Duration::NumBeats(_) => SlideStopTimeSpec::Bpm(x1),
+        Duration::Seconds(_) => SlideStopTimeSpec::Seconds(x1),
     };
 
-    Ok((s, SlideLength::Custom(stop_time_spec, len)))
+    Ok((s, SlideDuration::Custom(stop_time_spec, dur)))
 }
 
-pub fn t_slide_len(s: NomSpan) -> PResult<SlideLength> {
+pub fn t_slide_dur(s: NomSpan) -> PResult<SlideDuration> {
     use nom::branch::alt;
 
     // simple variant must come before custom
-    alt((t_slide_len_simple, t_slide_len_custom))(s)
+    alt((t_slide_dur_simple, t_slide_dur_custom))(s)
 }
 
-// FxE[len]
+// FxE[dur]
 // covers everything except FVRE
 macro_rules! define_slide_segment {
     (@ $fn_name: ident, $recog: expr, $variant: ident) => {
@@ -122,13 +123,13 @@ pub fn t_slide_segment_group(s: NomSpan) -> PResult<(SlideSegmentGroup, bool)> {
     // TODO: track with different speed
     let (s, segments) = ws_list1(t_slide_segment)(s)?;
     let (s, is_break) = opt(ws(char('b')))(s)?;
-    let (s, len) = ws(t_slide_len)(s)?;
+    let (s, dur) = ws(t_slide_dur)(s)?;
     let (s, is_break) = match is_break {
         Some(_) => (s, is_break),
         None => opt(ws(char('b')))(s)?,
     };
 
-    Ok((s, (SlideSegmentGroup { segments, len }, is_break.is_some())))
+    Ok((s, (SlideSegmentGroup { segments, dur }, is_break.is_some())))
 }
 
 pub fn t_slide_track(s: NomSpan) -> PResult<SlideTrack> {

@@ -1,4 +1,5 @@
 mod bundle;
+mod duration;
 mod hold;
 mod slide;
 mod tap;
@@ -9,45 +10,6 @@ use super::*;
 
 pub use bundle::{t_bundle, t_single_note};
 pub use tap::t_tap_multi_simplified;
-
-fn t_len_spec_beats(s: NomSpan) -> PResult<Length> {
-    use nom::character::complete::char;
-    use nom::character::complete::digit1;
-
-    // TODO: support floating point
-    let (s, divisor_str) = digit1(s)?;
-    let (s, _) = ws(char(':'))(s)?;
-    let (s, num_str) = ws(digit1)(s)?;
-
-    // TODO: handle conversion errors
-    let divisor = divisor_str.fragment().parse().unwrap();
-    let num = num_str.fragment().parse().unwrap();
-
-    Ok((s, Length::NumBeats(NumBeatsParams { divisor, num })))
-}
-
-fn t_len_spec_absolute(s: NomSpan) -> PResult<Length> {
-    let (s, dur) = t_absolute_duration(s)?;
-
-    Ok((s, Length::Seconds(dur)))
-}
-
-fn t_len_spec(s: NomSpan) -> PResult<Length> {
-    use nom::branch::alt;
-
-    alt((t_len_spec_beats, t_len_spec_absolute))(s)
-}
-
-fn t_len(s: NomSpan) -> PResult<Length> {
-    use nom::character::complete::char;
-
-    // TODO: star-time/BPM overrides
-    let (s, _) = char('[')(s)?;
-    let (s, len) = ws(t_len_spec)(s)?;
-    let (s, _) = ws(char(']'))(s)?;
-
-    Ok((s, len))
-}
 
 #[cfg(test)]
 mod tests {

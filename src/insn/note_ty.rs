@@ -84,12 +84,12 @@ impl std::convert::TryFrom<(char, Option<u8>)> for TouchSensor {
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
-pub enum Length {
+pub enum Duration {
     NumBeats(NumBeatsParams),
     Seconds(f32),
 }
 
-impl std::fmt::Display for Length {
+impl std::fmt::Display for Duration {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::NumBeats(params) => write!(f, "{}", params),
@@ -114,25 +114,25 @@ impl std::fmt::Display for SlideStopTimeSpec {
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
-pub enum SlideLength {
-    Simple(Length),
-    Custom(SlideStopTimeSpec, Length),
+pub enum SlideDuration {
+    Simple(Duration),
+    Custom(SlideStopTimeSpec, Duration),
 }
 
-impl std::fmt::Display for SlideLength {
+impl std::fmt::Display for SlideDuration {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Simple(length) => write!(f, "{}", length),
-            Self::Custom(spec, length) => write!(f, "{}#{}", spec, length),
+            Self::Simple(duration) => write!(f, "{}", duration),
+            Self::Custom(spec, duration) => write!(f, "{}#{}", spec, duration),
         }
     }
 }
 
-impl SlideLength {
-    pub fn slide_duration(&self) -> Length {
+impl SlideDuration {
+    pub fn slide_duration(&self) -> Duration {
         match self {
-            SlideLength::Simple(l) => *l,
-            SlideLength::Custom(_, l) => *l,
+            SlideDuration::Simple(l) => *l,
+            SlideDuration::Custom(_, l) => *l,
         }
     }
 }
@@ -190,7 +190,7 @@ pub struct HoldParams {
     pub is_break: bool,
     pub is_ex: bool,
     pub key: Key,
-    pub len: Length,
+    pub dur: Duration,
 }
 
 impl std::fmt::Display for HoldParams {
@@ -202,7 +202,7 @@ impl std::fmt::Display for HoldParams {
         if self.is_ex {
             write!(f, "x")?;
         }
-        write!(f, "h[{}]", self.len)?;
+        write!(f, "h[{}]", self.dur)?;
         Ok(())
     }
 }
@@ -211,7 +211,7 @@ impl std::fmt::Display for HoldParams {
 pub struct TouchHoldParams {
     pub is_firework: bool,
     pub sensor: TouchSensor,
-    pub len: Length,
+    pub dur: Duration,
 }
 
 impl std::fmt::Display for TouchHoldParams {
@@ -220,7 +220,7 @@ impl std::fmt::Display for TouchHoldParams {
         if self.is_firework {
             write!(f, "f")?;
         }
-        write!(f, "h[{}]", self.len)?;
+        write!(f, "h[{}]", self.dur)?;
         Ok(())
     }
 }
@@ -267,7 +267,7 @@ impl std::fmt::Display for SlideTrack {
 #[derive(Clone, PartialEq, Debug)]
 pub struct SlideSegmentGroup {
     pub segments: Vec<SlideSegment>,
-    pub len: SlideLength,
+    pub dur: SlideDuration,
 }
 
 impl std::fmt::Display for SlideSegmentGroup {
@@ -275,7 +275,7 @@ impl std::fmt::Display for SlideSegmentGroup {
         for segment in self.segments.iter() {
             write!(f, "{}", segment)?;
         }
-        write!(f, "[{}]", self.len)?;
+        write!(f, "[{}]", self.dur)?;
         Ok(())
     }
 }

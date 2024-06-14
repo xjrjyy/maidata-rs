@@ -38,7 +38,7 @@ fn main() {
     let mut result = beatmap_data_vec
         .iter()
         .map(|data| {
-            let max_slide_length = data
+            let max_slide_duration = data
                 .groups
                 .iter()
                 .map(|group| {
@@ -56,15 +56,15 @@ fn main() {
                 })
                 .max_by(|a, b| a.partial_cmp(b).unwrap())
                 .unwrap_or(0.0);
-            (data, max_slide_length)
+            (data, max_slide_duration)
         })
         .collect::<Vec<_>>();
 
     result.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
-    for (data, max_slide_length) in result.iter().take(20) {
+    for (data, max_slide_duration) in result.iter().take(20) {
         println!(
             "{:.2}s: {} [{:?}]",
-            max_slide_length,
+            max_slide_duration,
             data.maidata.title(),
             data.diff.difficulty()
         );

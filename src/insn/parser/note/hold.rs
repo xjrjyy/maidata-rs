@@ -1,3 +1,4 @@
+use super::duration::t_dur;
 use super::*;
 
 pub fn t_hold(s: NomSpan) -> PResult<SpRawNoteInsn> {
@@ -18,7 +19,7 @@ pub fn t_hold(s: NomSpan) -> PResult<SpRawNoteInsn> {
         .iter()
         .chain(next_variants.iter())
         .any(|&x| x == 'x');
-    let (s, len) = ws(t_len)(s)?;
+    let (s, dur) = ws(t_dur)(s)?;
     let (s, end_loc) = nom_locate::position(s)?;
 
     let span = (start_loc, end_loc);
@@ -28,7 +29,7 @@ pub fn t_hold(s: NomSpan) -> PResult<SpRawNoteInsn> {
             is_break,
             is_ex,
             key,
-            len,
+            dur,
         })
         .with_span(span),
     ))
