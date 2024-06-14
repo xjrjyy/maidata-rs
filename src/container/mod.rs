@@ -1,5 +1,3 @@
-use nom::IResult;
-
 use crate::{NomSpan, PResult};
 use std::collections::HashMap;
 
@@ -223,7 +221,7 @@ pub fn lex_maidata(x: &str) -> Maidata {
     result
 }
 
-fn lex_maidata_inner(s: NomSpan) -> IResult<NomSpan, Vec<KeyVal>> {
+fn lex_maidata_inner(s: NomSpan) -> PResult<Vec<KeyVal>> {
     use nom::character::complete::char;
     use nom::combinator::opt;
     use nom::multi::many0;
@@ -248,7 +246,7 @@ fn t_eof(s: NomSpan) -> PResult<NomSpan> {
     eof(s)
 }
 
-fn lex_keyval(s: NomSpan) -> IResult<NomSpan, KeyVal> {
+fn lex_keyval(s: NomSpan) -> PResult<KeyVal> {
     use nom::bytes::complete::take_till;
     use nom::character::complete::char;
     use nom::character::complete::multispace0;
@@ -337,12 +335,12 @@ fn t_level_char(s: NomSpan) -> PResult<crate::Level> {
 }
 
 impl std::convert::TryFrom<NomSpan<'_>> for crate::Level {
-    type Error = nom::Err<nom::error::ErrorKind>;
+    type Error = String;
 
     fn try_from(value: NomSpan) -> Result<Self, Self::Error> {
         match t_level(value) {
             Ok((_, value)) => Ok(value),
-            Err(e) => Err(e.map(|x| x.code)),
+            Err(e) => Err(format!("{:?}", e)),
         }
     }
 }

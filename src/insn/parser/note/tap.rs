@@ -5,14 +5,18 @@ pub fn t_tap_modifier(s: NomSpan) -> PResult<TapModifier> {
     use nom::multi::many0;
 
     let (s1, variants) = many0(ws(one_of("bx")))(s)?;
+    let modifier = variants
+        .iter()
+        .try_fold(TapModifier::default(), |acc, &x| {
+            acc + TapModifier {
+                is_break: x == 'b',
+                is_ex: x == 'x',
+                shape: None,
+            }
+        })
+        .map_err(|e| nom::Err::Failure(e.into()))?;
 
-    Ok((
-        if variants.is_empty() { s } else { s1 },
-        TapModifier {
-            is_break: variants.iter().any(|&x| x == 'b'),
-            is_ex: variants.iter().any(|&x| x == 'x'),
-        },
-    ))
+    Ok((if variants.is_empty() { s } else { s1 }, modifier))
 }
 
 pub fn t_tap_param(s: NomSpan) -> PResult<TapParams> {

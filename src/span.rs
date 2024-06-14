@@ -1,7 +1,52 @@
 pub(crate) type NomSpan<'a> = nom_locate::LocatedSpan<&'a str>;
 
+#[derive(Debug)]
+pub struct PError {
+    pub message: String,
+}
+
+impl PError {
+    pub fn new(message: impl Into<String>) -> Self {
+        Self {
+            message: message.into(),
+        }
+    }
+}
+
+impl From<String> for PError {
+    fn from(message: String) -> Self {
+        Self { message }
+    }
+}
+
+impl std::fmt::Display for PError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.message)
+    }
+}
+
+impl nom::error::ParseError<NomSpan<'_>> for PError {
+    fn from_error_kind(input: NomSpan<'_>, _kind: nom::error::ErrorKind) -> Self {
+        Self {
+            message: format!("Unexpected token: {:?}", input.fragment()),
+        }
+    }
+
+    fn append(input: NomSpan<'_>, _kind: nom::error::ErrorKind, other: Self) -> Self {
+        Self {
+            message: format!("{}: {:?}", other.message, input.fragment()),
+        }
+    }
+
+    fn from_char(input: NomSpan<'_>, _c: char) -> Self {
+        Self {
+            message: format!("Unexpected token: {:?}", input.fragment()),
+        }
+    }
+}
+
 /// Convenient alias for parsing result with spans.
-pub(crate) type PResult<'a, T> = nom::IResult<NomSpan<'a>, T>;
+pub type PResult<'a, T> = nom::IResult<NomSpan<'a>, T, PError>;
 
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct Span {

@@ -1,19 +1,38 @@
 use super::*;
 
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+pub enum TapShape {
+    Ring,
+    Star,
+    StarSpin,
+    Invalid, // 1?-3[4:1] / 1!-3[4:1]
+}
+
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct TapModifier {
     pub is_break: bool,
     pub is_ex: bool,
+    pub shape: Option<TapShape>,
 }
 
 impl std::ops::Add for TapModifier {
-    type Output = Self;
+    type Output = Result<Self, String>;
 
     fn add(self, rhs: Self) -> Self::Output {
-        Self {
+        if self.is_break && rhs.is_break {
+            return Err("Duplicate break modifier".to_string());
+        }
+        if self.is_ex && rhs.is_ex {
+            return Err("Duplicate ex modifier".to_string());
+        }
+        if self.shape.is_some() && rhs.shape.is_some() {
+            return Err("Duplicate shape modifier".to_string());
+        }
+        Ok(Self {
             is_break: self.is_break || rhs.is_break,
             is_ex: self.is_ex || rhs.is_ex,
-        }
+            shape: self.shape.or(rhs.shape),
+        })
     }
 }
 

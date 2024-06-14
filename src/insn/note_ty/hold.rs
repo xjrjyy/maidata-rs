@@ -7,13 +7,19 @@ pub struct HoldModifier {
 }
 
 impl std::ops::Add for HoldModifier {
-    type Output = Self;
+    type Output = Result<Self, String>;
 
     fn add(self, rhs: Self) -> Self::Output {
-        Self {
+        if self.is_break && rhs.is_break {
+            return Err("Duplicate break modifier".to_string());
+        }
+        if self.is_ex && rhs.is_ex {
+            return Err("Duplicate ex modifier".to_string());
+        }
+        Ok(Self {
             is_break: self.is_break || rhs.is_break,
             is_ex: self.is_ex || rhs.is_ex,
-        }
+        })
     }
 }
 

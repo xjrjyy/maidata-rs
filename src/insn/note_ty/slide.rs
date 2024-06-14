@@ -66,15 +66,23 @@ impl std::fmt::Display for SlideParams {
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct SlideTrackModifier {
     pub is_break: bool,
+    pub is_sudden: bool,
 }
 
 impl std::ops::Add for SlideTrackModifier {
-    type Output = Self;
+    type Output = Result<Self, String>;
 
     fn add(self, rhs: Self) -> Self::Output {
-        Self {
-            is_break: self.is_break || rhs.is_break,
+        if self.is_break && rhs.is_break {
+            return Err("Duplicate break modifier".to_string());
         }
+        if self.is_sudden && rhs.is_sudden {
+            return Err("Duplicate sudden modifier".to_string());
+        }
+        Ok(Self {
+            is_break: self.is_break || rhs.is_break,
+            is_sudden: self.is_sudden || rhs.is_sudden,
+        })
     }
 }
 

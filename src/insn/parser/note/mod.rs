@@ -48,6 +48,7 @@ mod tests {
                 modifier: TapModifier {
                     is_break: true,
                     is_ex: true,
+                    shape: None,
                 },
             }
         );
@@ -58,6 +59,7 @@ mod tests {
                 modifier: TapModifier {
                     is_break: false,
                     is_ex: true,
+                    shape: None,
                 },
             }
         );
@@ -65,6 +67,7 @@ mod tests {
         test_parser_err!(t_tap_param, "");
         test_parser_err!(t_tap_param, " 1");
         test_parser_err!(t_tap_param, "x1");
+        test_parser_err!(t_tap_param, "1xx");
 
         Ok(())
     }
@@ -90,6 +93,7 @@ mod tests {
         test_parser_err!(t_touch_param, "");
         test_parser_err!(t_touch_param, " A1");
         test_parser_err!(t_touch_param, "Af2");
+        test_parser_err!(t_touch_param, "D1 ff,");
 
         Ok(())
     }

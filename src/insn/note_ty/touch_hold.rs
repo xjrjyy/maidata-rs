@@ -6,12 +6,15 @@ pub struct TouchHoldModifier {
 }
 
 impl std::ops::Add for TouchHoldModifier {
-    type Output = Self;
+    type Output = Result<Self, String>;
 
     fn add(self, rhs: Self) -> Self::Output {
-        Self {
-            is_firework: self.is_firework || rhs.is_firework,
+        if self.is_firework && rhs.is_firework {
+            return Err("Duplicate firework modifier".to_string());
         }
+        Ok(Self {
+            is_firework: self.is_firework || rhs.is_firework,
+        })
     }
 }
 

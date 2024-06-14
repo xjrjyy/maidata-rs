@@ -156,13 +156,17 @@ pub fn t_slide_track_modifier(s: NomSpan) -> PResult<SlideTrackModifier> {
     use nom::multi::many0;
 
     let (s1, variants) = many0(ws(one_of("b")))(s)?;
+    let modifier = variants
+        .iter()
+        .try_fold(SlideTrackModifier::default(), |acc, &x| {
+            acc + SlideTrackModifier {
+                is_break: x == 'b',
+                is_sudden: false,
+            }
+        })
+        .map_err(|e| nom::Err::Failure(e.into()))?;
 
-    Ok((
-        if variants.is_empty() { s } else { s1 },
-        SlideTrackModifier {
-            is_break: variants.iter().any(|&x| x == 'b'),
-        },
-    ))
+    Ok((if variants.is_empty() { s } else { s1 }, modifier))
 }
 
 pub fn t_slide_segment_group(s: NomSpan) -> PResult<(SlideSegmentGroup, SlideTrackModifier)> {
@@ -173,6 +177,7 @@ pub fn t_slide_segment_group(s: NomSpan) -> PResult<(SlideSegmentGroup, SlideTra
     let (s, modifier) = t_slide_track_modifier(s)?;
     let (s, dur) = ws(t_slide_dur)(s)?;
     let (s, modifier) = map(t_slide_track_modifier, move |m| m + modifier)(s)?;
+    let modifier = modifier.map_err(|e| nom::Err::Failure(e.into()))?;
 
     Ok((s, (SlideSegmentGroup { segments, dur }, modifier)))
 }
@@ -184,7 +189,8 @@ pub fn t_slide_track(s: NomSpan) -> PResult<SlideTrack> {
     let modifier = groups
         .iter()
         .map(|(_, modifier)| *modifier)
-        .fold(Default::default(), |acc, x| acc + x);
+        .try_fold(SlideTrackModifier::default(), |acc, x| acc + x)
+        .map_err(|e| nom::Err::Failure(e.into()))?;
 
     Ok((
         s,
