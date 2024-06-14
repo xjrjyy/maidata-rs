@@ -1,34 +1,69 @@
-use super::duration::{t_dur, t_dur_spec};
+use super::duration::{t_dur, t_dur_spec_absolute, t_dur_spec_bpm_num_beats, t_dur_spec_num_beats};
 use super::tap;
 use super::*;
 
-pub fn t_slide_dur_simple(s: NomSpan) -> PResult<SlideDuration> {
+fn t_slide_dur_simple(s: NomSpan) -> PResult<SlideDuration> {
     let (s, dur) = t_dur(s)?;
 
     Ok((s, SlideDuration::Simple(dur)))
 }
 
-// NOTE: must run after t_slide_dur_simple
-pub fn t_slide_dur_custom(s: NomSpan) -> PResult<SlideDuration> {
+fn t_slide_dur_custom_bpm(s: NomSpan) -> PResult<SlideDuration> {
     use nom::character::complete::char;
     use nom::number::complete::float;
 
     let (s, _) = char('[')(s)?;
-    let (s, x1) = ws(float)(s)?;
+    let (s, bpm) = ws(float)(s)?;
     let (s, _) = ws(char('#'))(s)?;
-    let (s, dur) = ws(t_dur_spec)(s)?;
+    let (s, dur) = ws(float)(s)?;
+    let (s, _) = ws(char(']'))(s)?;
+
+    Ok((
+        s,
+        SlideDuration::Custom(SlideStopTimeSpec::Bpm(bpm), Duration::Seconds(dur)),
+    ))
+}
+
+fn t_slide_dur_custom_seconds(s: NomSpan) -> PResult<SlideDuration> {
+    use nom::branch::alt;
+    use nom::bytes::complete::tag;
+    use nom::character::complete::char;
+    use nom::number::complete::float;
+    use nom::sequence::preceded;
+
+    let (s, _) = char('[')(s)?;
+    let (s, x1) = ws(float)(s)?;
+    let (s, dur) = ws(alt((
+        preceded(
+            tag("##"),
+            ws(alt((t_dur_spec_num_beats, t_dur_spec_bpm_num_beats))),
+        ),
+        preceded(char('#'), t_dur_spec_absolute), // no need to use ws
+    )))(s)?;
     let (s, _) = ws(char(']'))(s)?;
 
     // TODO: following cases are possible in this combinator:
     //
-    // - `[160#8:3]` -> stop time=(as in BPM 160) dur=8:3
+    // - `[160#2.0]` -> stop time=(as in BPM 160) dur=2.0s
     // - `[3##1.5]` -> stop time=(absolute 3s) dur=1.5s
-    let stop_time_spec = match dur {
-        Duration::NumBeats(_) => SlideStopTimeSpec::Bpm(x1),
-        Duration::Seconds(_) => SlideStopTimeSpec::Seconds(x1),
-    };
+    // - `[3##4:1]` -> stop time=(absolute 3s) dur=4:1
+    // - `[3.0##160#4:1]` -> stop time=(absolute 3s) dur=4:1(as in BPM 160)
 
-    Ok((s, SlideDuration::Custom(stop_time_spec, dur)))
+    Ok((
+        s,
+        SlideDuration::Custom(SlideStopTimeSpec::Seconds(x1), dur),
+    ))
+}
+
+// NOTE: must run after t_slide_dur_simple
+fn t_slide_dur_custom(s: NomSpan) -> PResult<SlideDuration> {
+    // TODO: following cases are possible in this combinator:
+    //
+    // - `[160#2.0]` -> stop time=(as in BPM 160) dur=2.0s
+    // - `[3##1.5]` -> stop time=(absolute 3s) dur=1.5s
+    // - `[3##4:1]` -> stop time=(absolute 3s) dur=4:1
+    // - `[3.0##160#4:1]` -> stop time=(absolute 3s) dur=4:1(as in BPM 160)
+    nom::branch::alt((t_slide_dur_custom_bpm, t_slide_dur_custom_seconds))(s)
 }
 
 pub fn t_slide_dur(s: NomSpan) -> PResult<SlideDuration> {
@@ -177,4 +212,93 @@ pub fn t_slide(s: NomSpan) -> PResult<SpRawNoteInsn> {
         s,
         RawNoteInsn::Slide(SlideParams { start, tracks }).with_span(span),
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    macro_rules! test_parser_ok {
+        ($parser: expr, $start: expr, $rest: expr) => {{
+            let (s, result) = $parser(concat!($start, $rest).into())?;
+            assert_eq!(*s.fragment(), $rest);
+            result
+        }};
+    }
+
+    macro_rules! test_parser_err {
+        ($parser: expr, $start: expr) => {{
+            let result = $parser($start.into());
+            assert!(result.is_err());
+        }};
+    }
+
+    #[test]
+    fn test_t_slide_dur() -> Result<(), Box<dyn std::error::Error>> {
+        assert_eq!(
+            test_parser_ok!(t_slide_dur, "[ 4 : 3 ]", " ,"),
+            SlideDuration::Simple(Duration::NumBeats(NumBeatsParams { divisor: 4, num: 3 }))
+        );
+
+        assert_eq!(
+            test_parser_ok!(t_slide_dur, "[#2.5]", " ,"),
+            SlideDuration::Simple(Duration::Seconds(2.5))
+        );
+
+        assert_eq!(
+            test_parser_ok!(t_slide_dur, "[ 120.0 #4: 1]", " ,"),
+            SlideDuration::Simple(Duration::BpmNumBeats(BpmNumBeatsParams {
+                bpm: 120.0,
+                divisor: 4,
+                num: 1
+            }))
+        );
+
+        assert_eq!(
+            test_parser_ok!(t_slide_dur, "[ 160 #2.0 ]", " ,"),
+            SlideDuration::Custom(SlideStopTimeSpec::Bpm(160.0), Duration::Seconds(2.0))
+        );
+        // [160##2.0] is valid, but it is in the next group
+
+        assert_eq!(
+            test_parser_ok!(t_slide_dur, "[ 3.0## 1.5 ]", " ,"),
+            SlideDuration::Custom(SlideStopTimeSpec::Seconds(3.0), Duration::Seconds(1.5))
+        );
+        test_parser_err!(t_slide_dur, "[3.0# #1.5]");
+        test_parser_err!(t_slide_dur, "[3.0###1.5]");
+        // [3.0#1.5] is valid, but it is in the previous group
+
+        assert_eq!(
+            test_parser_ok!(t_slide_dur, "[ 3.0## 4 : 1 ]", " ,"),
+            SlideDuration::Custom(
+                SlideStopTimeSpec::Seconds(3.0),
+                Duration::NumBeats(NumBeatsParams { divisor: 4, num: 1 })
+            )
+        );
+        test_parser_err!(t_slide_dur, "[3.0# #4:1]");
+        test_parser_err!(t_slide_dur, "[3.0###4:1]");
+
+        assert_eq!(
+            test_parser_ok!(t_slide_dur, "[ 3.0 ##160 #4 : 1 ]", " ,"),
+            SlideDuration::Custom(
+                SlideStopTimeSpec::Seconds(3.0),
+                Duration::BpmNumBeats(BpmNumBeatsParams {
+                    bpm: 160.0,
+                    divisor: 4,
+                    num: 1
+                })
+            )
+        );
+        test_parser_err!(t_slide_dur, "[3.0# #160#4:1]");
+        test_parser_err!(t_slide_dur, "[3.0###160#4:1]");
+        test_parser_err!(t_slide_dur, "[3.0##160##4:1]");
+
+        test_parser_err!(t_slide_dur, "[3.0#160##4:1]");
+        test_parser_err!(t_slide_dur, "[3.0#160#1.0]");
+        test_parser_err!(t_slide_dur, "[3.0#160##1.0]");
+        test_parser_err!(t_slide_dur, "[3.0#4:1##160.0]");
+        test_parser_err!(t_slide_dur, "[4:1#3.0##160.0]");
+
+        Ok(())
+    }
 }

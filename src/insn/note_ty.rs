@@ -86,6 +86,7 @@ impl std::convert::TryFrom<(char, Option<u8>)> for TouchSensor {
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Duration {
     NumBeats(NumBeatsParams),
+    BpmNumBeats(BpmNumBeatsParams),
     Seconds(f32),
 }
 
@@ -93,6 +94,7 @@ impl std::fmt::Display for Duration {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::NumBeats(params) => write!(f, "{}", params),
+            Self::BpmNumBeats(params) => write!(f, "{}", params),
             Self::Seconds(seconds) => write!(f, "#{}", seconds),
         }
     }
@@ -102,15 +104,6 @@ impl std::fmt::Display for Duration {
 pub enum SlideStopTimeSpec {
     Bpm(f32),
     Seconds(f32),
-}
-
-impl std::fmt::Display for SlideStopTimeSpec {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Bpm(x) => write!(f, "{}", x),
-            Self::Seconds(x) => write!(f, "{}", x),
-        }
-    }
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
@@ -123,7 +116,19 @@ impl std::fmt::Display for SlideDuration {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Simple(duration) => write!(f, "{}", duration),
-            Self::Custom(spec, duration) => write!(f, "{}#{}", spec, duration),
+            Self::Custom(spec, duration) => match spec {
+                SlideStopTimeSpec::Bpm(bpm) => {
+                    if let Duration::Seconds(seconds) = duration {
+                        write!(f, "{}#{}", bpm, seconds)
+                    } else {
+                        panic!("Invalid slide duration spec: {:?} {:?}", spec, duration)
+                    }
+                }
+                SlideStopTimeSpec::Seconds(seconds) => match duration {
+                    Duration::Seconds(dur) => write!(f, "{}##{}", seconds, dur),
+                    _ => write!(f, "{}##{}", seconds, duration),
+                },
+            },
         }
     }
 }
@@ -146,6 +151,19 @@ pub struct NumBeatsParams {
 impl std::fmt::Display for NumBeatsParams {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}:{}", self.divisor, self.num)
+    }
+}
+
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub struct BpmNumBeatsParams {
+    pub bpm: f32,
+    pub divisor: u32,
+    pub num: u32,
+}
+
+impl std::fmt::Display for BpmNumBeatsParams {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}#{}:{}", self.bpm, self.divisor, self.num)
     }
 }
 

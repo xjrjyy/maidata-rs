@@ -39,9 +39,10 @@ Map definition instructions:
     - [x] chaining tracks `1-4q7-2[1:2]` (3simai)
     - [x] BREAK modifier `1-2-3[2:1]b` (3simai)
     - [x] duration specs
+        - [x] `[160#2.0]`
         - [x] `[3.0##1.5]`
-        - [ ] `[3.0##4:1]`
-        - [ ] `[3.0##160#4:1]`
+        - [x] `[3.0##4:1]`
+        - [x] `[3.0##160#4:1]`
 * [x] TOUCH `B,` (3simai)
     - [x] FIREWORK modifier `Bf,`
 * [x] TOUCH HOLD `Bh[duration],` (3simai)
@@ -52,4 +53,4 @@ Map definition instructions:
 
 * [x] normal duration spec `[x:y]`
 * [x] absolute duration specs `[#sec]`
-* [ ] normal duration spec with BPM `[bpm#x:y]`
+* [x] normal duration spec with BPM `[bpm#x:y]`
