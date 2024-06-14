@@ -8,20 +8,82 @@ use note::{t_bundle, t_single_note, t_tap_multi_simplified};
 use position::*;
 
 /// remove leading whitespace
-fn ws<'a, F, O>(inner: F) -> impl FnMut(NomSpan<'a>) -> PResult<'a, O>
+fn ws<'a, F, O>(f: F) -> impl FnMut(NomSpan<'a>) -> PResult<'a, O>
 where
     F: 'a + FnMut(NomSpan<'a>) -> PResult<'a, O>,
 {
-    nom::sequence::preceded(multispace0, inner)
+    nom::sequence::preceded(multispace0, f)
 }
 
-fn ws_list1<'a, F, O>(inner: F) -> impl FnMut(NomSpan<'a>) -> PResult<'a, Vec<O>>
+fn _ws_list0<'a, F, O>(mut f: F) -> impl FnMut(NomSpan<'a>) -> PResult<'a, Vec<O>>
 where
     F: 'a + FnMut(NomSpan<'a>) -> PResult<'a, O>,
 {
-    // TODO: nom::multi::separated_list1(multispace0, inner) will not work as expected (#1691)
+    // TODO: nom::multi::separated_list0(multispace0, f) will not work as expected (#1691)
     // wait for nom 8.0.0...
-    nom::multi::many1(ws(inner))
+    use nom::Err;
+    move |mut i: NomSpan<'a>| {
+        let mut res = Vec::new();
+
+        match f(i) {
+            Err(Err::Error(_)) => return Ok((i, res)),
+            Err(e) => return Err(e),
+            Ok((i1, o)) => {
+                res.push(o);
+                i = i1;
+            }
+        }
+
+        loop {
+            match multispace0(i) {
+                Err(Err::Error(_)) => return Ok((i, res)),
+                Err(e) => return Err(e),
+                Ok((i1, _)) => match f(i1) {
+                    Err(Err::Error(_)) => return Ok((i, res)),
+                    Err(e) => return Err(e),
+                    Ok((i2, o)) => {
+                        res.push(o);
+                        i = i2;
+                    }
+                },
+            }
+        }
+    }
+}
+
+fn ws_list1<'a, F, O>(mut f: F) -> impl FnMut(NomSpan<'a>) -> PResult<'a, Vec<O>>
+where
+    F: 'a + FnMut(NomSpan<'a>) -> PResult<'a, O>,
+{
+    // TODO: nom::multi::separated_list1(multispace0, f) will not work as expected (#1691)
+    // wait for nom 8.0.0...
+    use nom::Err;
+    move |mut i: NomSpan<'a>| {
+        let mut res = Vec::new();
+
+        match f(i) {
+            Err(e) => return Err(e),
+            Ok((i1, o)) => {
+                res.push(o);
+                i = i1;
+            }
+        }
+
+        loop {
+            match multispace0(i) {
+                Err(Err::Error(_)) => return Ok((i, res)),
+                Err(e) => return Err(e),
+                Ok((i1, _)) => match f(i1) {
+                    Err(Err::Error(_)) => return Ok((i, res)),
+                    Err(e) => return Err(e),
+                    Ok((i2, o)) => {
+                        res.push(o);
+                        i = i2;
+                    }
+                },
+            }
+        }
+    }
 }
 
 pub(crate) fn parse_maidata_insns(s: NomSpan) -> PResult<Vec<SpRawInsn>> {

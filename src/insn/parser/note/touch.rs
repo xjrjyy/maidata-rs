@@ -1,19 +1,24 @@
 use super::*;
 
-pub fn t_touch_param(s: NomSpan) -> PResult<TouchParams> {
-    use nom::character::complete::char;
-    use nom::combinator::opt;
+pub fn t_touch_modifier(s: NomSpan) -> PResult<TouchModifier> {
+    use nom::character::complete::one_of;
+    use nom::multi::many0;
 
-    let (s, sensor) = t_touch_sensor(s)?;
-    let (s, is_firework) = opt(ws(char('f')))(s)?;
+    let (s1, variants) = many0(ws(one_of("f")))(s)?;
 
     Ok((
-        s,
-        TouchParams {
-            is_firework: is_firework.is_some(),
-            sensor,
+        if variants.is_empty() { s } else { s1 },
+        TouchModifier {
+            is_firework: variants.iter().any(|&x| x == 'f'),
         },
     ))
+}
+
+pub fn t_touch_param(s: NomSpan) -> PResult<TouchParams> {
+    let (s, sensor) = t_touch_sensor(s)?;
+    let (s, modifier) = t_touch_modifier(s)?;
+
+    Ok((s, TouchParams { sensor, modifier }))
 }
 
 pub fn t_touch(s: NomSpan) -> PResult<SpRawNoteInsn> {

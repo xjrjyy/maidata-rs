@@ -37,25 +37,28 @@ mod tests {
         assert_eq!(
             test_parser_ok!(t_tap_param, "1", " ,"),
             TapParams {
-                is_break: false,
-                is_ex: false,
                 key: 0.try_into().unwrap(),
+                modifier: Default::default(),
             }
         );
         assert_eq!(
             test_parser_ok!(t_tap_param, "1 b x", ""),
             TapParams {
-                is_break: true,
-                is_ex: true,
                 key: 0.try_into().unwrap(),
+                modifier: TapModifier {
+                    is_break: true,
+                    is_ex: true,
+                },
             }
         );
         assert_eq!(
             test_parser_ok!(t_tap_param, "1 x", ""),
             TapParams {
-                is_break: false,
-                is_ex: true,
                 key: 0.try_into().unwrap(),
+                modifier: TapModifier {
+                    is_break: false,
+                    is_ex: true,
+                },
             }
         );
 
@@ -72,15 +75,15 @@ mod tests {
         assert_eq!(
             test_parser_ok!(t_touch_param, "B7", " ,"),
             TouchParams {
-                is_firework: false,
                 sensor: ('B', Some(6)).try_into().unwrap(),
+                modifier: Default::default(),
             }
         );
         assert_eq!(
             test_parser_ok!(t_touch_param, "C 1 f", ""),
             TouchParams {
-                is_firework: true,
                 sensor: ('C', None).try_into().unwrap(),
+                modifier: TouchModifier { is_firework: true },
             }
         );
 

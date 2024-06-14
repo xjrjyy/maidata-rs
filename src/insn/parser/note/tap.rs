@@ -1,25 +1,25 @@
 use super::*;
 
-pub fn t_tap_param(s: NomSpan) -> PResult<TapParams> {
-    use nom::character::complete::char;
-    use nom::combinator::opt;
+pub fn t_tap_modifier(s: NomSpan) -> PResult<TapModifier> {
+    use nom::character::complete::one_of;
+    use nom::multi::many0;
 
-    let (s, key) = t_key(s)?;
-    let (s, is_ex) = opt(ws(char('x')))(s)?;
-    let (s, is_break) = opt(ws(char('b')))(s)?;
-    let (s, is_ex) = match is_ex {
-        Some(_) => (s, is_ex),
-        None => opt(ws(char('x')))(s)?,
-    };
+    let (s1, variants) = many0(ws(one_of("bx")))(s)?;
 
     Ok((
-        s,
-        TapParams {
-            is_break: is_break.is_some(),
-            is_ex: is_ex.is_some(),
-            key,
+        if variants.is_empty() { s } else { s1 },
+        TapModifier {
+            is_break: variants.iter().any(|&x| x == 'b'),
+            is_ex: variants.iter().any(|&x| x == 'x'),
         },
     ))
+}
+
+pub fn t_tap_param(s: NomSpan) -> PResult<TapParams> {
+    let (s, key) = t_key(s)?;
+    let (s, modifier) = t_tap_modifier(s)?;
+
+    Ok((s, TapParams { key, modifier }))
 }
 
 pub fn t_tap(s: NomSpan) -> PResult<SpRawNoteInsn> {
@@ -40,10 +40,9 @@ pub fn t_tap_multi_simplified_every(s: NomSpan) -> PResult<SpRawNoteInsn> {
     Ok((
         s,
         RawNoteInsn::Tap(TapParams {
-            // all taps are regular ones when using simplified notation
-            is_break: false,
-            is_ex: false,
             key,
+            // all taps are regular ones when using simplified notation
+            modifier: Default::default(),
         })
         .with_span(span),
     ))

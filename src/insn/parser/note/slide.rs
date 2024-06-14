@@ -151,33 +151,46 @@ pub fn t_slide_segment(s: NomSpan) -> PResult<SlideSegment> {
     ))(s)
 }
 
-pub fn t_slide_segment_group(s: NomSpan) -> PResult<(SlideSegmentGroup, bool)> {
-    use nom::character::complete::char;
-    use nom::combinator::opt;
+pub fn t_slide_track_modifier(s: NomSpan) -> PResult<SlideTrackModifier> {
+    use nom::character::complete::one_of;
+    use nom::multi::many0;
+
+    let (s1, variants) = many0(ws(one_of("b")))(s)?;
+
+    Ok((
+        if variants.is_empty() { s } else { s1 },
+        SlideTrackModifier {
+            is_break: variants.iter().any(|&x| x == 'b'),
+        },
+    ))
+}
+
+pub fn t_slide_segment_group(s: NomSpan) -> PResult<(SlideSegmentGroup, SlideTrackModifier)> {
+    use nom::combinator::map;
 
     // TODO: track with different speed
     let (s, segments) = ws_list1(t_slide_segment)(s)?;
-    let (s, is_break) = opt(ws(char('b')))(s)?;
+    let (s, modifier) = t_slide_track_modifier(s)?;
     let (s, dur) = ws(t_slide_dur)(s)?;
-    let (s, is_break) = match is_break {
-        Some(_) => (s, is_break),
-        None => opt(ws(char('b')))(s)?,
-    };
+    let (s, modifier) = map(t_slide_track_modifier, move |m| m + modifier)(s)?;
 
-    Ok((s, (SlideSegmentGroup { segments, dur }, is_break.is_some())))
+    Ok((s, (SlideSegmentGroup { segments, dur }, modifier)))
 }
 
 pub fn t_slide_track(s: NomSpan) -> PResult<SlideTrack> {
     // TODO: track with different speed
     let (s, groups) = ws_list1(t_slide_segment_group)(s)?;
     // it is slightly different from the official syntax
-    let is_break = groups.iter().any(|(_, is_break)| *is_break);
+    let modifier = groups
+        .iter()
+        .map(|(_, modifier)| *modifier)
+        .fold(Default::default(), |acc, x| acc + x);
 
     Ok((
         s,
         SlideTrack {
             groups: groups.into_iter().map(|(group, _)| group).collect(),
-            is_break,
+            modifier,
         },
     ))
 }

@@ -63,10 +63,34 @@ impl std::fmt::Display for SlideParams {
     }
 }
 
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
+pub struct SlideTrackModifier {
+    pub is_break: bool,
+}
+
+impl std::ops::Add for SlideTrackModifier {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self {
+            is_break: self.is_break || rhs.is_break,
+        }
+    }
+}
+
+impl std::fmt::Display for SlideTrackModifier {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.is_break {
+            write!(f, "b")?;
+        }
+        Ok(())
+    }
+}
+
 #[derive(Clone, PartialEq, Debug)]
 pub struct SlideTrack {
-    pub is_break: bool,
     pub groups: Vec<SlideSegmentGroup>,
+    pub modifier: SlideTrackModifier,
 }
 
 impl std::fmt::Display for SlideTrack {
@@ -74,10 +98,7 @@ impl std::fmt::Display for SlideTrack {
         for group in self.groups.iter() {
             write!(f, "{}", group)?;
         }
-        if self.is_break {
-            write!(f, "b")?;
-        }
-        Ok(())
+        write!(f, "{}", self.modifier)
     }
 }
 

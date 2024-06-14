@@ -135,8 +135,8 @@ fn materialize_tap_params(ts: f32, p: &insn::TapParams, is_slide_star: bool) -> 
         ts,
         key: p.key,
         shape,
-        is_break: p.is_break,
-        is_ex: p.is_ex,
+        is_break: p.modifier.is_break,
+        is_ex: p.modifier.is_ex,
     }
 }
 
@@ -200,7 +200,7 @@ fn materialize_slide_track(
         ts,
         start_ts,
         groups,
-        is_break: track.is_break,
+        is_break: track.modifier.is_break,
     }
 }
 
@@ -248,8 +248,8 @@ fn materialize_hold_params(ts: f32, beat_dur: f32, p: &insn::HoldParams) -> Mate
         ts,
         dur: materialize_duration(p.dur, beat_dur),
         key: p.key,
-        is_break: p.is_break,
-        is_ex: p.is_ex,
+        is_break: p.modifier.is_break,
+        is_ex: p.modifier.is_ex,
     }
 }
 
