@@ -2,7 +2,7 @@ mod note;
 mod position;
 
 use super::*;
-use crate::{NomSpan, PResult, WithSpan};
+use crate::{NomSpan, PError, PResult, WithSpan};
 use nom::character::complete::multispace0;
 use note::{t_bundle, t_single_note, t_tap_multi_simplified};
 use position::*;

@@ -1,17 +1,24 @@
 use super::*;
 
 pub fn t_tap_modifier(s: NomSpan) -> PResult<TapModifier> {
-    use nom::character::complete::one_of;
+    use nom::branch::alt;
+    use nom::bytes::complete::tag;
     use nom::multi::many0;
+    use std::ops::Deref;
 
-    let (s1, variants) = many0(ws(one_of("bx")))(s)?;
+    let (s1, variants) = many0(ws(alt((tag("b"), tag("x"), tag("$$"), tag("$")))))(s)?;
     let modifier = variants
         .iter()
         .try_fold(TapModifier::default(), |acc, &x| {
+            let x = *x.deref();
             acc + TapModifier {
-                is_break: x == 'b',
-                is_ex: x == 'x',
-                shape: None,
+                is_break: x == "b",
+                is_ex: x == "x",
+                shape: match x {
+                    "$" => Some(TapShape::Star),
+                    "$$" => Some(TapShape::StarSpin),
+                    _ => None,
+                },
             }
         })
         .map_err(|e| nom::Err::Failure(e.into()))?;

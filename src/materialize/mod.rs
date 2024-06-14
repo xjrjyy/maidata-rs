@@ -31,6 +31,8 @@ pub struct MaterializedTap {
 pub enum MaterializedTapShape {
     Ring,
     Star,
+    StarSpin,
+    Invalid,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -61,6 +63,7 @@ pub struct MaterializedSlideTrack {
     pub start_ts: TimestampInSeconds,
     pub groups: Vec<MaterializedSlideSegmentGroup>,
     pub is_break: bool,
+    pub is_sudden: bool,
 }
 
 #[derive(Clone, Debug)]

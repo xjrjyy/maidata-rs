@@ -1,5 +1,4 @@
 use super::duration::{t_dur, t_dur_spec_absolute, t_dur_spec_bpm_num_beats, t_dur_spec_num_beats};
-use super::tap;
 use super::*;
 
 fn t_slide_dur_simple(s: NomSpan) -> PResult<SlideDuration> {
@@ -210,11 +209,54 @@ pub fn t_slide_sep_track(s: NomSpan) -> PResult<SlideTrack> {
     Ok((s, track))
 }
 
+pub fn t_slide_start_modifier(s: NomSpan) -> PResult<(TapModifier, SlideTrackModifier)> {
+    use nom::branch::alt;
+    use nom::bytes::complete::tag;
+    use nom::multi::many0;
+    use std::ops::Deref;
+
+    let (s1, variants) = many0(ws(alt((tag("b"), tag("x"), tag("@"), tag("?"), tag("!")))))(s)?;
+    let mut slide_track_modifier = SlideTrackModifier::default();
+    let modifier = variants
+        .iter()
+        .try_fold(TapModifier::default(), |acc, &x| {
+            let x = *x.deref();
+            acc + TapModifier {
+                is_break: x == "b",
+                is_ex: x == "x",
+                shape: match x {
+                    "@" => Some(TapShape::Ring),
+                    "?" => Some(TapShape::Invalid),
+                    "!" => {
+                        slide_track_modifier = (slide_track_modifier
+                            + SlideTrackModifier {
+                                is_sudden: true,
+                                ..Default::default()
+                            })?;
+                        Some(TapShape::Invalid)
+                    }
+                    _ => None,
+                },
+            }
+        })
+        .map_err(|e| nom::Err::Failure(e.into()))?;
+
+    Ok((
+        if variants.is_empty() { s } else { s1 },
+        (modifier, slide_track_modifier),
+    ))
+}
+
 pub fn t_slide(s: NomSpan) -> PResult<SpRawNoteInsn> {
     use nom::multi::many0;
 
     let (s, start_loc) = nom_locate::position(s)?;
-    let (s, start) = tap::t_tap_param(s)?;
+    let (s, start_key) = ws(t_key)(s)?;
+    let (s, (start_modifier, track_modifier)) = t_slide_start_modifier(s)?;
+    let start = TapParams {
+        key: start_key,
+        modifier: start_modifier,
+    };
     let (s, first_track) = ws(t_slide_track)(s)?;
     let (s, rest_track) = many0(ws(t_slide_sep_track))(s)?;
     let (s, end_loc) = nom_locate::position(s)?;
@@ -223,7 +265,13 @@ pub fn t_slide(s: NomSpan) -> PResult<SpRawNoteInsn> {
         let mut tmp = Vec::with_capacity(rest_track.len() + 1);
         tmp.push(first_track);
         tmp.extend(rest_track);
-        tmp
+        tmp.into_iter()
+            .map(|mut x| {
+                x.modifier = (x.modifier + track_modifier)?;
+                Ok(x)
+            })
+            .collect::<Result<Vec<_>, PError>>()
+            .map_err(nom::Err::Failure)?
     };
 
     let span = (start_loc, end_loc);

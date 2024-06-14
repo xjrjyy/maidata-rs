@@ -126,9 +126,19 @@ fn divide_beat(beat_dur: f32, beat_divisor: u32) -> f32 {
 }
 
 fn materialize_tap_params(ts: f32, p: &insn::TapParams, is_slide_star: bool) -> MaterializedTap {
-    let shape = match is_slide_star {
-        false => MaterializedTapShape::Ring,
-        true => MaterializedTapShape::Star,
+    let shape = match p.modifier.shape {
+        Some(insn::TapShape::Ring) => MaterializedTapShape::Ring,
+        Some(insn::TapShape::Star) => MaterializedTapShape::Star,
+        Some(insn::TapShape::StarSpin) => MaterializedTapShape::StarSpin,
+        // TODO: handle invalid shape
+        Some(insn::TapShape::Invalid) => MaterializedTapShape::Invalid,
+        None => {
+            if is_slide_star {
+                MaterializedTapShape::Star
+            } else {
+                MaterializedTapShape::Ring
+            }
+        }
     };
 
     MaterializedTap {
@@ -201,6 +211,7 @@ fn materialize_slide_track(
         start_ts,
         groups,
         is_break: track.modifier.is_break,
+        is_sudden: track.modifier.is_sudden,
     }
 }
 

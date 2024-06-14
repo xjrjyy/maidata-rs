@@ -5,7 +5,7 @@ pub enum TapShape {
     Ring,
     Star,
     StarSpin,
-    Invalid, // 1?-3[4:1] / 1!-3[4:1]
+    Invalid,
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
