@@ -1,34 +1,75 @@
 use super::*;
 
-pub fn t_touch_modifier(s: NomSpan) -> PResult<TouchModifier> {
+pub fn t_touch_modifier(s: NomSpan, mut modifier: TouchModifier) -> PResult<TouchModifier> {
     use nom::character::complete::one_of;
     use nom::multi::many0;
 
-    let (s1, variants) = many0(ws(one_of("f")))(s)?;
-    let modifier = variants
-        .iter()
-        .try_fold(TouchModifier::default(), |acc, &x| {
-            acc + TouchModifier {
-                is_firework: x == 'f',
+    let (s1, start_loc) = nom_locate::position(s)?;
+    let (s1, variants) = many0(ws(one_of("f")))(s1)?;
+    let (s1, end_loc) = nom_locate::position(s1)?;
+    for x in &variants {
+        match *x {
+            'f' => {
+                if modifier.is_firework {
+                    s.extra.borrow_mut().add_warning(
+                        (start_loc, end_loc).into(),
+                        "Duplicate `f` modifier in touch instruction".to_string(),
+                    );
+                }
+                modifier.is_firework = true;
             }
-        })
-        .map_err(|e| nom::Err::Failure(e.into()))?;
+            _ => unreachable!(),
+        }
+    }
 
     Ok((if variants.is_empty() { s } else { s1 }, modifier))
 }
 
 pub fn t_touch_param(s: NomSpan) -> PResult<TouchParams> {
     let (s, sensor) = t_touch_sensor(s)?;
-    let (s, modifier) = t_touch_modifier(s)?;
+    let (s, modifier) = t_touch_modifier(s, TouchModifier::default())?;
 
     Ok((s, TouchParams { sensor, modifier }))
 }
 
-pub fn t_touch(s: NomSpan) -> PResult<SpRawNoteInsn> {
+pub fn t_touch(s: NomSpan) -> PResult<Option<SpRawNoteInsn>> {
     let (s, start_loc) = nom_locate::position(s)?;
     let (s, params) = t_touch_param(s)?;
     let (s, end_loc) = nom_locate::position(s)?;
 
     let span = (start_loc, end_loc);
-    Ok((s, RawNoteInsn::Touch(params).with_span(span)))
+    Ok((s, Some(RawNoteInsn::Touch(params).with_span(span))))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::tests::{test_parser_err, test_parser_ok, test_parser_warn};
+    use super::*;
+    use std::error::Error;
+
+    #[test]
+    fn test_t_touch_param() -> Result<(), Box<dyn Error>> {
+        use touch::t_touch_param;
+        assert_eq!(
+            test_parser_ok(t_touch_param, "B7", " ,"),
+            TouchParams {
+                sensor: ('B', Some(6)).try_into().unwrap(),
+                modifier: Default::default(),
+            }
+        );
+        assert_eq!(
+            test_parser_ok(t_touch_param, "C 1 f", ""),
+            TouchParams {
+                sensor: ('C', None).try_into().unwrap(),
+                modifier: TouchModifier { is_firework: true },
+            }
+        );
+
+        test_parser_err(t_touch_param, "");
+        test_parser_err(t_touch_param, " A1");
+        test_parser_err(t_touch_param, "Af2");
+        test_parser_warn(t_touch_param, "D1 ff,");
+
+        Ok(())
+    }
 }

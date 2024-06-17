@@ -5,7 +5,7 @@ use tap::t_tap;
 use touch::t_touch;
 use touch_hold::t_touch_hold;
 
-pub fn t_single_note(s: NomSpan) -> PResult<SpRawInsn> {
+pub fn t_single_note(s: NomSpan) -> PResult<Option<SpRawInsn>> {
     let (s, start_loc) = nom_locate::position(s)?;
     // NOTE: tap and touch must come last as it can match on the simplest key, blocking holds and slides from parsing
     let (s, note) = nom::branch::alt((t_hold, t_touch_hold, t_slide, t_tap, t_touch))(s)?;
@@ -13,24 +13,24 @@ pub fn t_single_note(s: NomSpan) -> PResult<SpRawInsn> {
     let (s, end_loc) = nom_locate::position(s)?;
 
     let span = (start_loc, end_loc);
-    Ok((s, RawInsn::Note(note).with_span(span)))
+    Ok((s, note.map(|note| RawInsn::Note(note).with_span(span))))
 }
 
-pub fn t_bundle_note(s: NomSpan) -> PResult<SpRawNoteInsn> {
+pub fn t_bundle_note(s: NomSpan) -> PResult<Option<SpRawNoteInsn>> {
     // NOTE: tap and touch must come last as it can match on the simplest key, blocking holds and slides from parsing
     nom::branch::alt((t_hold, t_touch_hold, t_slide, t_tap, t_touch))(s)
 }
 
-pub fn t_bundle_sep_note(s: NomSpan) -> PResult<SpRawNoteInsn> {
+pub fn t_bundle_sep_note(s: NomSpan) -> PResult<Option<SpRawNoteInsn>> {
     use nom::character::complete::char;
 
     let (s, _) = char('/')(s)?;
-    let (s, note) = ws(t_bundle_note)(s)?;
+    let (s, note) = ws(t_bundle_note).expect("expected note")(s)?;
 
-    Ok((s, note))
+    Ok((s, note.flatten()))
 }
 
-pub fn t_bundle(s: NomSpan) -> PResult<SpRawInsn> {
+pub fn t_bundle(s: NomSpan) -> PResult<Option<SpRawInsn>> {
     use nom::multi::many1;
 
     let (s, start_loc) = nom_locate::position(s)?;
@@ -43,9 +43,12 @@ pub fn t_bundle(s: NomSpan) -> PResult<SpRawInsn> {
         let mut tmp = Vec::with_capacity(rest.len() + 1);
         tmp.push(first);
         tmp.extend(rest);
-        tmp
+        tmp.into_iter().flatten().collect::<Vec<_>>()
     };
+    if notes.is_empty() {
+        return Ok((s, None));
+    }
 
     let span = (start_loc, end_loc);
-    Ok((s, RawInsn::NoteBundle(notes).with_span(span)))
+    Ok((s, Some(RawInsn::NoteBundle(notes).with_span(span))))
 }

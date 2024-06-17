@@ -84,11 +84,11 @@ fn main() {
     for (k, v) in result.iter().take(2000) {
         print!("{}: ", k);
         for bundle in v.iter() {
-            for i in 0..bundle.len() {
+            for (i, note) in bundle.iter().enumerate() {
                 if i > 0 {
                     print!("/");
                 }
-                print!("{}", bundle[i]);
+                print!("{}", note);
             }
             print!(",");
         }
@@ -105,7 +105,8 @@ where
     F: Fn(&AssociatedBeatmapData) -> bool,
 {
     let content = read_file(path);
-    let maidata = maidata::container::lex_maidata(&content).unwrap();
+    let (maidata, state) = maidata::container::lex_maidata(&content);
+    assert!(!state.has_messages());
 
     maidata
         .iter_difficulties()

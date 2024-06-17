@@ -6,23 +6,6 @@ pub struct HoldModifier {
     pub is_ex: bool,
 }
 
-impl std::ops::Add for HoldModifier {
-    type Output = Result<Self, String>;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        if self.is_break && rhs.is_break {
-            return Err("Duplicate break modifier".to_string());
-        }
-        if self.is_ex && rhs.is_ex {
-            return Err("Duplicate ex modifier".to_string());
-        }
-        Ok(Self {
-            is_break: self.is_break || rhs.is_break,
-            is_ex: self.is_ex || rhs.is_ex,
-        })
-    }
-}
-
 impl std::fmt::Display for HoldModifier {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.is_break {

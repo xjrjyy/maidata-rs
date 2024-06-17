@@ -69,23 +69,6 @@ pub struct SlideTrackModifier {
     pub is_sudden: bool,
 }
 
-impl std::ops::Add for SlideTrackModifier {
-    type Output = Result<Self, String>;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        if self.is_break && rhs.is_break {
-            return Err("Duplicate break modifier".to_string());
-        }
-        if self.is_sudden && rhs.is_sudden {
-            return Err("Duplicate sudden modifier".to_string());
-        }
-        Ok(Self {
-            is_break: self.is_break || rhs.is_break,
-            is_sudden: self.is_sudden || rhs.is_sudden,
-        })
-    }
-}
-
 impl std::fmt::Display for SlideTrackModifier {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.is_break {

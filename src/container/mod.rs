@@ -1,4 +1,4 @@
-use crate::{NomSpan, PResult};
+use crate::{NomSpan, PResult, ParseState};
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -17,7 +17,7 @@ pub struct Maidata {
     fallback_single_message: Option<String>,
 
     // XXX: is wholebpm mandatory?
-    star_bpm: Option<f32>,
+    _star_bpm: Option<f32>,
 
     difficulties: Vec<BeatmapData>,
 }
@@ -101,12 +101,15 @@ impl<'a> AssociatedBeatmapData<'a> {
     }
 }
 
-pub fn parse_maidata_insns(x: &str) -> PResult<Vec<crate::Sp<crate::insn::RawInsn>>> {
-    crate::insn::parse_maidata_insns(NomSpan::new(x))
+pub fn parse_maidata_insns(x: &str) -> (Vec<crate::Sp<crate::insn::RawInsn>>, ParseState) {
+    let state = std::cell::RefCell::new(ParseState::default());
+    let (_, result) = crate::insn::parse_maidata_insns(NomSpan::new_extra(x, &state)).unwrap();
+    (result, state.into_inner())
 }
 
-pub fn lex_maidata(x: &str) -> Result<Maidata, String> {
-    let input = NomSpan::new(x);
+pub fn lex_maidata(x: &str) -> (Maidata, ParseState) {
+    let state = std::cell::RefCell::new(ParseState::default());
+    let input = NomSpan::new_extra(x, &state);
     let output = lex_maidata_inner(input);
 
     let kvs = output.expect("parse maidata failed").1;
@@ -140,9 +143,7 @@ pub fn lex_maidata(x: &str) -> Result<Maidata, String> {
                         let data = diff_map
                             .entry($diff)
                             .or_insert(BeatmapData::default_with_difficulty($diff));
-                        data.insns = crate::insn::parse_maidata_insns(kv.val)
-                            .map_err(|e| e.to_string())?
-                            .1;
+                        data.insns = crate::insn::parse_maidata_insns(kv.val).unwrap().1;
                         handled = true;
                     }
                     concat!("lv_", stringify!($num)) => {
@@ -217,7 +218,7 @@ pub fn lex_maidata(x: &str) -> Result<Maidata, String> {
     result.difficulties.extend(diff_map.into_values());
     result.difficulties.sort_by_key(|x| x.difficulty);
 
-    Ok(result)
+    (result, state.into_inner())
 }
 
 fn lex_maidata_inner(s: NomSpan) -> PResult<Vec<KeyVal>> {

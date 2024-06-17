@@ -15,27 +15,6 @@ pub struct TapModifier {
     pub shape: Option<TapShape>,
 }
 
-impl std::ops::Add for TapModifier {
-    type Output = Result<Self, String>;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        if self.is_break && rhs.is_break {
-            return Err("Duplicate break modifier".to_string());
-        }
-        if self.is_ex && rhs.is_ex {
-            return Err("Duplicate ex modifier".to_string());
-        }
-        if self.shape.is_some() && rhs.shape.is_some() {
-            return Err("Duplicate shape modifier".to_string());
-        }
-        Ok(Self {
-            is_break: self.is_break || rhs.is_break,
-            is_ex: self.is_ex || rhs.is_ex,
-            shape: self.shape.or(rhs.shape),
-        })
-    }
-}
-
 impl std::fmt::Display for TapModifier {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.is_break {

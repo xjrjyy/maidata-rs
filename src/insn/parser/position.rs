@@ -25,32 +25,18 @@ pub fn t_touch_sensor(s: NomSpan) -> PResult<TouchSensor> {
 
 #[cfg(test)]
 mod tests {
+    use super::super::tests::{test_parser_err, test_parser_ok};
     use super::*;
     use std::error::Error;
 
-    macro_rules! test_parser_ok {
-        ($parser: ident, $start: expr, $rest: expr) => {{
-            let (s, result) = $parser(concat!($start, $rest).into())?;
-            assert_eq!(*s.fragment(), $rest);
-            result
-        }};
-    }
-
-    macro_rules! test_parser_err {
-        ($parser: ident, $start: expr) => {{
-            let result = $parser($start.into());
-            assert!(result.is_err());
-        }};
-    }
-
     #[test]
     fn test_t_key() -> Result<(), Box<dyn Error>> {
-        assert_eq!(test_parser_ok!(t_key, "1", " ,"), 0.try_into().unwrap());
+        assert_eq!(test_parser_ok(t_key, "1", " ,"), 0.try_into().unwrap());
 
-        test_parser_err!(t_key, " 2");
-        test_parser_err!(t_key, "0");
-        test_parser_err!(t_key, "9");
-        test_parser_err!(t_key, "A1");
+        test_parser_err(t_key, " 2");
+        test_parser_err(t_key, "0");
+        test_parser_err(t_key, "9");
+        test_parser_err(t_key, "A1");
 
         Ok(())
     }
@@ -58,31 +44,31 @@ mod tests {
     #[test]
     fn test_t_touch_sensor() -> Result<(), Box<dyn Error>> {
         assert_eq!(
-            test_parser_ok!(t_touch_sensor, "E1", " ,"),
+            test_parser_ok(t_touch_sensor, "E1", " ,"),
             ('E', Some(0)).try_into().unwrap()
         );
         assert_eq!(
-            test_parser_ok!(t_touch_sensor, "C", ""),
+            test_parser_ok(t_touch_sensor, "C", ""),
             ('C', None).try_into().unwrap()
         );
         assert_eq!(
-            test_parser_ok!(t_touch_sensor, "C1", ""),
+            test_parser_ok(t_touch_sensor, "C1", ""),
             ('C', None).try_into().unwrap()
         );
         assert_eq!(
-            test_parser_ok!(t_touch_sensor, "C2", ""),
+            test_parser_ok(t_touch_sensor, "C2", ""),
             ('C', None).try_into().unwrap()
         );
         assert_eq!(
-            test_parser_ok!(t_touch_sensor, "C", "3"),
+            test_parser_ok(t_touch_sensor, "C", "3"),
             ('C', None).try_into().unwrap()
         );
 
-        test_parser_err!(t_touch_sensor, " C");
-        test_parser_err!(t_touch_sensor, "E,");
-        test_parser_err!(t_touch_sensor, "B9");
-        test_parser_err!(t_touch_sensor, "D0");
-        test_parser_err!(t_touch_sensor, "1");
+        test_parser_err(t_touch_sensor, " C");
+        test_parser_err(t_touch_sensor, "E,");
+        test_parser_err(t_touch_sensor, "B9");
+        test_parser_err(t_touch_sensor, "D0");
+        test_parser_err(t_touch_sensor, "1");
 
         Ok(())
     }

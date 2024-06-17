@@ -19,8 +19,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .filter_map(Result::ok)
         .filter(|e| !e.file_type().is_dir() && e.file_name() == "maidata.txt")
         .map(|e| read_file(e.path()))
-        .map(|content| maidata::container::lex_maidata(&content))
-        .collect::<Result<Vec<Maidata>, _>>()?;
+        .map(|content| {
+            let (maidata, state) = maidata::container::lex_maidata(&content);
+            assert!(!state.has_messages());
+            maidata
+        })
+        .collect::<Vec<_>>();
     let beatmap_data_vec = maidata_vec
         .iter()
         .flat_map(|maidata| {
@@ -84,6 +88,7 @@ use maidata::transform::{
     NormalizedSlideSegment, NormalizedSlideSegmentGroup, NormalizedSlideSegmentParams,
     NormalizedSlideSegmentShape, NormalizedSlideTrack,
 };
+#[allow(unused_imports)]
 use maidata::Level;
 
 const FRAMES_PER_SECOND: DurationInSeconds = 60.0;

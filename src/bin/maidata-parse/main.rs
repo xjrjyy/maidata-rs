@@ -24,8 +24,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn parse_maidata<P: AsRef<std::path::Path>>(path: P) -> Result<(), Box<dyn std::error::Error>> {
-    let content = read_file(path);
-    let maidata = maidata::container::lex_maidata(&content)?;
+    let content = read_file(&path);
+    let (maidata, state) = maidata::container::lex_maidata(&content);
+    assert!(!state.has_messages());
 
     for diff in maidata.iter_difficulties() {
         println!("{} insns", diff.iter_insns().count());

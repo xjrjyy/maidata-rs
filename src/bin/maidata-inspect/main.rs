@@ -24,7 +24,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nth(1)
         .expect("usage: $0 <path/to/maidata.txt>");
     let content = read_file(filename);
-    let maidata = maidata::container::lex_maidata(&content)?;
+    let (maidata, state) = maidata::container::lex_maidata(&content);
+    assert!(!state.has_messages());
 
     println!("title = {}", maidata.title());
     println!("artist = {}", maidata.artist());

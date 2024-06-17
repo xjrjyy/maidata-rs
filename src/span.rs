@@ -1,52 +1,84 @@
-pub(crate) type NomSpan<'a> = nom_locate::LocatedSpan<&'a str>;
+use std::cell::RefCell;
 
-#[derive(Debug)]
-pub struct PError {
+pub type NomSpan<'a> = nom_locate::LocatedSpan<&'a str, &'a RefCell<ParseState>>;
+
+/// Convenient alias for parsing result with spans.
+pub type PResult<'a, T> = nom::IResult<NomSpan<'a>, T>;
+
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct ParseMessage {
+    pub span: Span,
     pub message: String,
 }
 
-impl PError {
-    pub fn new(message: impl Into<String>) -> Self {
-        Self {
-            message: message.into(),
+#[derive(Clone, Debug, Default)]
+pub struct ParseState {
+    pub warnings: Vec<ParseMessage>,
+    pub errors: Vec<ParseMessage>,
+}
+
+impl ParseState {
+    pub fn add_warning(&mut self, span: Span, message: String) {
+        self.warnings.push(ParseMessage { span, message });
+    }
+
+    pub fn add_error(&mut self, span: Span, message: String) {
+        self.errors.push(ParseMessage { span, message });
+    }
+
+    pub fn has_warnings(&self) -> bool {
+        !self.warnings.is_empty()
+    }
+
+    pub fn has_errors(&self) -> bool {
+        !self.errors.is_empty()
+    }
+
+    pub fn has_messages(&self) -> bool {
+        self.has_warnings() || self.has_errors()
+    }
+}
+
+pub fn expect<'a, F, E, T>(
+    mut parser: F,
+    error_msg: E,
+) -> impl FnMut(NomSpan<'a>) -> PResult<'a, Option<T>>
+where
+    F: FnMut(NomSpan<'a>) -> PResult<'a, T>,
+    E: ToString,
+{
+    move |input| {
+        let (input, start_loc) = nom_locate::position(input)?;
+        match parser(input) {
+            Ok((remaining, out)) => Ok((remaining, Some(out))),
+            Err(nom::Err::Error(e)) | Err(nom::Err::Failure(e)) => {
+                let (_, end_loc) = nom_locate::position(e.input)?;
+                let span = (start_loc, end_loc).into();
+                e.input
+                    .extra
+                    .borrow_mut()
+                    .add_error(span, error_msg.to_string());
+                Ok((input, None))
+            }
+            Err(err) => Err(err),
         }
     }
 }
 
-impl From<String> for PError {
-    fn from(message: String) -> Self {
-        Self { message }
-    }
+pub trait Expect<'a, T> {
+    fn expect<E>(self, error_msg: E) -> impl FnMut(NomSpan<'a>) -> PResult<'a, Option<T>>
+    where
+        E: ToString;
 }
 
-impl std::fmt::Display for PError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.message)
+impl<'a, T, U: 'a + FnMut(NomSpan<'a>) -> PResult<T>> Expect<'a, T> for U {
+    fn expect<E>(self, error_msg: E) -> impl FnMut(NomSpan<'a>) -> PResult<'a, Option<T>>
+    where
+        E: ToString,
+    {
+        expect(self, error_msg)
     }
 }
-
-impl nom::error::ParseError<NomSpan<'_>> for PError {
-    fn from_error_kind(input: NomSpan<'_>, _kind: nom::error::ErrorKind) -> Self {
-        Self {
-            message: format!("Unexpected token: {:?}", input.fragment()),
-        }
-    }
-
-    fn append(input: NomSpan<'_>, _kind: nom::error::ErrorKind, other: Self) -> Self {
-        Self {
-            message: format!("{}: {:?}", other.message, input.fragment()),
-        }
-    }
-
-    fn from_char(input: NomSpan<'_>, _c: char) -> Self {
-        Self {
-            message: format!("Unexpected token: {:?}", input.fragment()),
-        }
-    }
-}
-
-/// Convenient alias for parsing result with spans.
-pub type PResult<'a, T> = nom::IResult<NomSpan<'a>, T, PError>;
 
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct Span {

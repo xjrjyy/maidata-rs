@@ -2,7 +2,8 @@ mod note;
 mod position;
 
 use super::*;
-use crate::{NomSpan, PError, PResult, WithSpan};
+use crate::span::Expect;
+use crate::{NomSpan, PResult, WithSpan};
 use nom::character::complete::multispace0;
 use note::{t_bundle, t_single_note, t_tap_multi_simplified};
 use position::*;
@@ -86,22 +87,28 @@ where
     }
 }
 
-pub(crate) fn parse_maidata_insns(s: NomSpan) -> PResult<Vec<SpRawInsn>> {
-    use nom::multi::many0;
-
-    let (s, insns) = many0(ws(parse_one_maidata_insn))(s)?;
-    let (s, _) = ws(t_eof)(s)?;
+pub(crate) fn parse_maidata_insns(mut s: NomSpan) -> PResult<Vec<SpRawInsn>> {
+    let mut insns = Vec::new();
+    loop {
+        let (s1, _) = multispace0(s)?;
+        s = s1;
+        if s1.fragment().is_empty() {
+            break;
+        }
+        let (s1, insn) = parse_one_maidata_insn(s)?;
+        s = s1;
+        if let Some(insn) = insn {
+            insns.push(insn);
+        }
+    }
 
     Ok((s, insns))
 }
 
-fn t_eof(s: NomSpan) -> PResult<NomSpan> {
-    use nom::combinator::eof;
-    eof(s)
-}
+fn parse_one_maidata_insn(s: NomSpan) -> PResult<Option<SpRawInsn>> {
+    use nom::branch::alt;
 
-fn parse_one_maidata_insn(s: NomSpan) -> PResult<SpRawInsn> {
-    nom::branch::alt((
+    let (s, insn) = alt((
         t_bpm,
         t_beat_divisor,
         t_rest,
@@ -109,10 +116,31 @@ fn parse_one_maidata_insn(s: NomSpan) -> PResult<SpRawInsn> {
         t_tap_multi_simplified,
         t_bundle,
         t_end_mark,
-    ))(s)
+    ))(s)?;
+
+    // TODO: handle unknown characters
+    if insn.is_none() {
+        t_unknown_char(s)?;
+    }
+
+    Ok((s, insn))
 }
 
-fn t_end_mark(s: NomSpan) -> PResult<SpRawInsn> {
+fn t_unknown_char(s: NomSpan) -> PResult<()> {
+    use nom::character::complete::anychar;
+
+    let (start_loc, _) = nom_locate::position(s)?;
+    let (s, c) = anychar(s)?;
+    let (end_loc, _) = nom_locate::position(s)?;
+    s.extra.borrow_mut().add_error(
+        (start_loc, end_loc).into(),
+        format!("Unknown character: `{}`", c),
+    );
+
+    Ok((s, ()))
+}
+
+fn t_end_mark(s: NomSpan) -> PResult<Option<SpRawInsn>> {
     use nom::character::complete::char;
 
     let (s, start_loc) = nom_locate::position(s)?;
@@ -120,7 +148,7 @@ fn t_end_mark(s: NomSpan) -> PResult<SpRawInsn> {
     let (s, end_loc) = nom_locate::position(s)?;
 
     let span = (start_loc, end_loc);
-    Ok((s, RawInsn::EndMark.with_span(span)))
+    Ok((s, Some(RawInsn::EndMark.with_span(span))))
 }
 
 fn t_note_sep(s: NomSpan) -> PResult<()> {
@@ -130,19 +158,28 @@ fn t_note_sep(s: NomSpan) -> PResult<()> {
     Ok((s, ()))
 }
 
-fn t_bpm(s: NomSpan) -> PResult<SpRawInsn> {
+fn t_bpm(s: NomSpan) -> PResult<Option<SpRawInsn>> {
     use nom::character::complete::char;
     use nom::number::complete::float;
+    use nom::sequence::delimited;
 
     let (s, start_loc) = nom_locate::position(s)?;
-    let (s, _) = char('(')(s)?;
-    let (s, bpm) = ws(float)(s)?;
-    let (s, _) = ws(char(')'))(s)?;
+    // let (s, _) = char('(')(s)?;
+    // let (s, bpm) = ws(float)(s)?;
+    // let (s, _) = ws(char(')'))(s)?;
+    let (s, bpm) = delimited(
+        char('('),
+        ws(float).expect("expected BPM value"),
+        ws(char(')')).expect("missing `)` after BPM value"),
+    )(s)?;
     let (s, end_loc) = nom_locate::position(s)?;
 
     let span = (start_loc, end_loc);
 
-    Ok((s, RawInsn::Bpm(BpmParams { new_bpm: bpm }).with_span(span)))
+    Ok((
+        s,
+        bpm.map(|bpm| RawInsn::Bpm(BpmParams { new_bpm: bpm }).with_span(span)),
+    ))
 }
 
 fn t_absolute_duration(s: NomSpan) -> PResult<f32> {
@@ -177,72 +214,107 @@ fn t_beat_divisor_param(s: NomSpan) -> PResult<BeatDivisorParams> {
     alt((t_beat_divisor_param_int, t_beat_divisor_param_float))(s)
 }
 
-fn t_beat_divisor(s: NomSpan) -> PResult<SpRawInsn> {
+fn t_beat_divisor(s: NomSpan) -> PResult<Option<SpRawInsn>> {
     use nom::character::complete::char;
+    use nom::sequence::delimited;
 
     let (s, start_loc) = nom_locate::position(s)?;
-    let (s, _) = char('{')(s)?;
-    let (s, params) = ws(t_beat_divisor_param)(s)?;
-    let (s, _) = ws(char('}'))(s)?;
+    let (s, params) = delimited(
+        char('{'),
+        ws(t_beat_divisor_param).expect("expected beat divisor parameter"),
+        ws(char('}')).expect("missing `}` after beat divisor parameter"),
+    )(s)?;
     let (s, end_loc) = nom_locate::position(s)?;
 
     let span = (start_loc, end_loc);
-    Ok((s, RawInsn::BeatDivisor(params).with_span(span)))
+    Ok((
+        s,
+        params.map(|params| RawInsn::BeatDivisor(params).with_span(span)),
+    ))
 }
 
-fn t_rest(s: NomSpan) -> PResult<SpRawInsn> {
+fn t_rest(s: NomSpan) -> PResult<Option<SpRawInsn>> {
     let (s, start_loc) = nom_locate::position(s)?;
     let (s, _) = t_note_sep(s)?;
     let (s, end_loc) = nom_locate::position(s)?;
 
     let span = (start_loc, end_loc);
-    Ok((s, RawInsn::Rest.with_span(span)))
+    Ok((s, Some(RawInsn::Rest.with_span(span))))
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::ParseState;
+
     use super::*;
     use std::error::Error;
 
-    macro_rules! test_parser_ok {
-        ($parser: ident, $start: expr, $rest: expr) => {{
-            let (s, result) = $parser(concat!($start, $rest).into())?;
-            assert_eq!(*s.fragment(), $rest);
-            result
-        }};
+    pub fn test_parser_ok<T>(
+        parser: impl Fn(NomSpan<'_>) -> PResult<T>,
+        start: &str,
+        rest: &str,
+    ) -> T {
+        let state = std::cell::RefCell::new(crate::ParseState::default());
+        let start = start.to_owned() + rest;
+        let s = NomSpan::new_extra(&start, &state);
+        let (s, result) = parser(s).expect("parser cannot fail");
+        assert_eq!(state.borrow().warnings, vec![]);
+        assert_eq!(state.borrow().errors, vec![]);
+        assert_eq!(*s.fragment(), rest);
+        result
     }
 
-    macro_rules! test_parser_err {
-        ($parser: ident, $start: expr) => {{
-            let result = $parser($start.into());
-            assert!(result.is_err());
-        }};
+    pub fn test_parser_err<T>(
+        parser: impl Fn(NomSpan<'_>) -> PResult<T>,
+        start: &str,
+    ) -> ParseState {
+        let state = std::cell::RefCell::new(crate::ParseState::default());
+        let s = NomSpan::new_extra(start, &state);
+        let result = parser(s);
+        // TODO: split
+        assert!(result.is_err() || state.borrow().has_errors());
+        state.into_inner()
+    }
+
+    pub fn test_parser_warn<T>(
+        parser: impl Fn(NomSpan<'_>) -> PResult<T>,
+        start: &str,
+    ) -> ParseState {
+        let state = std::cell::RefCell::new(crate::ParseState::default());
+        let s = NomSpan::new_extra(start, &state);
+        parser(s).unwrap();
+        // TODO: split
+        assert!(!state.borrow().has_errors() && state.borrow().has_warnings());
+        state.into_inner()
     }
 
     #[test]
     fn test_t_bpm() -> Result<(), Box<dyn Error>> {
         assert_eq!(
-            *test_parser_ok!(t_bpm, "(123456)", ""),
+            *test_parser_ok(t_bpm, "(123456)", "").unwrap(),
             RawInsn::Bpm(BpmParams { new_bpm: 123456.0 })
         );
         assert_eq!(
-            *test_parser_ok!(t_bpm, "( 123.4 )", " { 4}1, "),
+            *test_parser_ok(t_bpm, "( 123.4 )", " { 4}1, ").unwrap(),
             RawInsn::Bpm(BpmParams { new_bpm: 123.4 })
         );
 
-        test_parser_err!(t_bpm, "(123 456)");
-        test_parser_err!(t_bpm, "()");
+        test_parser_err(t_bpm, "(123 456)");
+        test_parser_err(t_bpm, "()");
 
         Ok(())
     }
 
     #[test]
     fn test_t_rest() -> Result<(), Box<dyn Error>> {
-        assert_eq!(*test_parser_ok!(t_rest, ",", ""), RawInsn::Rest);
-        assert_eq!(*test_parser_ok!(t_rest, ",", " (123) {1}1,"), RawInsn::Rest);
+        assert_eq!(*test_parser_ok(t_rest, ",", "").unwrap(), RawInsn::Rest);
+        assert_eq!(
+            *test_parser_ok(t_rest, ",", " (123) {1}1,").unwrap(),
+            RawInsn::Rest
+        );
 
-        test_parser_err!(t_rest, " ,");
-        test_parser_err!(t_rest, "(123) ,,,");
+        test_parser_err(t_rest, " ,");
+        test_parser_err(t_rest, "(123) ,,,");
 
         Ok(())
     }

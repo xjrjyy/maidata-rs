@@ -9,7 +9,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 {1}1^2^1^2^1^2^1^2^1^2[1:1],
 {1}3,
 "#;
-    let notes = parse_maidata_insns(maidata)?.1;
+    let (notes, state) = parse_maidata_insns(maidata);
+    assert!(!state.has_messages());
     let mut mcx = maidata::materialize::MaterializationContext::with_offset(0.0);
     let mut notes = mcx
         .materialize_insns(&notes)
