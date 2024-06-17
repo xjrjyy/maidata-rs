@@ -16,7 +16,7 @@ where
     nom::sequence::preceded(multispace0, f)
 }
 
-fn _ws_list0<'a, F, O>(mut f: F) -> impl FnMut(NomSpan<'a>) -> PResult<'a, Vec<O>>
+fn ws_list0<'a, F, O>(mut f: F) -> impl FnMut(NomSpan<'a>) -> PResult<'a, Vec<O>>
 where
     F: 'a + FnMut(NomSpan<'a>) -> PResult<'a, O>,
 {
@@ -87,28 +87,17 @@ where
     }
 }
 
-pub(crate) fn parse_maidata_insns(mut s: NomSpan) -> PResult<Vec<SpRawInsn>> {
-    let mut insns = Vec::new();
-    loop {
-        let (s1, _) = multispace0(s)?;
-        s = s1;
-        if s1.fragment().is_empty() {
-            break;
-        }
-        let (s1, insn) = parse_one_maidata_insn(s)?;
-        s = s1;
-        if let Some(insn) = insn {
-            insns.push(insn);
-        }
-    }
+pub(crate) fn parse_maidata_insns(s: NomSpan) -> PResult<Vec<SpRawInsn>> {
+    let (s, _) = multispace0(s)?;
+    let (s, insns) = ws_list0(parse_one_maidata_insn)(s)?;
 
-    Ok((s, insns))
+    Ok((s, insns.into_iter().flatten().collect()))
 }
 
 fn parse_one_maidata_insn(s: NomSpan) -> PResult<Option<SpRawInsn>> {
     use nom::branch::alt;
 
-    let (s, insn) = alt((
+    alt((
         t_bpm,
         t_beat_divisor,
         t_rest,
@@ -116,17 +105,12 @@ fn parse_one_maidata_insn(s: NomSpan) -> PResult<Option<SpRawInsn>> {
         t_tap_multi_simplified,
         t_bundle,
         t_end_mark,
-    ))(s)?;
-
-    // TODO: handle unknown characters
-    if insn.is_none() {
-        t_unknown_char(s)?;
-    }
-
-    Ok((s, insn))
+        // TODO: handle unknown characters
+        t_unknown_char,
+    ))(s)
 }
 
-fn t_unknown_char(s: NomSpan) -> PResult<()> {
+fn t_unknown_char(s: NomSpan) -> PResult<Option<SpRawInsn>> {
     use nom::character::complete::anychar;
 
     let (start_loc, _) = nom_locate::position(s)?;
@@ -137,7 +121,7 @@ fn t_unknown_char(s: NomSpan) -> PResult<()> {
         format!("Unknown character: `{}`", c),
     );
 
-    Ok((s, ()))
+    Ok((s, None))
 }
 
 fn t_end_mark(s: NomSpan) -> PResult<Option<SpRawInsn>> {

@@ -8,7 +8,14 @@ pub type PResult<'a, T> = nom::IResult<NomSpan<'a>, T>;
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ParseMessage {
     pub span: Span,
+    // TODO: enum for error/warning?
     pub message: String,
+}
+
+impl std::fmt::Display for ParseMessage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}: {}", self.span, self.message)
+    }
 }
 
 #[derive(Clone, Debug, Default)]
@@ -115,6 +122,16 @@ impl Span {
 impl From<(NomSpan<'_>, NomSpan<'_>)> for Span {
     fn from(x: (NomSpan<'_>, NomSpan<'_>)) -> Self {
         Span::from_start_end(x.0, x.1)
+    }
+}
+
+impl std::fmt::Display for Span {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "[{}:{}-{}:{}]",
+            self.line, self.col, self.end_line, self.end_col
+        )
     }
 }
 

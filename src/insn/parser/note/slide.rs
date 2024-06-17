@@ -1,21 +1,21 @@
-use super::duration::{t_dur, t_dur_spec_absolute, t_dur_spec_bpm_num_beats, t_dur_spec_num_beats};
+use super::duration::{
+    t_dur_spec, t_dur_spec_absolute, t_dur_spec_bpm_num_beats, t_dur_spec_num_beats,
+};
 use super::*;
 
-fn t_slide_dur_simple(s: NomSpan) -> PResult<Option<SlideDuration>> {
-    let (s, dur) = t_dur(s)?;
+fn t_slide_dur_spec_simple(s: NomSpan) -> PResult<Option<SlideDuration>> {
+    let (s, dur) = t_dur_spec(s)?;
 
     Ok((s, dur.map(SlideDuration::Simple)))
 }
 
-fn t_slide_dur_custom_bpm(s: NomSpan) -> PResult<Option<SlideDuration>> {
+fn t_slide_dur_spec_custom_bpm(s: NomSpan) -> PResult<Option<SlideDuration>> {
     use nom::character::complete::char;
     use nom::number::complete::float;
 
-    let (s, _) = char('[')(s)?;
     let (s, bpm) = ws(float)(s)?;
     let (s, _) = ws(char('#'))(s)?;
     let (s, dur) = ws(float)(s)?;
-    let (s, _) = ws(char(']'))(s)?;
 
     Ok((
         s,
@@ -26,14 +26,13 @@ fn t_slide_dur_custom_bpm(s: NomSpan) -> PResult<Option<SlideDuration>> {
     ))
 }
 
-fn t_slide_dur_custom_seconds(s: NomSpan) -> PResult<Option<SlideDuration>> {
+fn t_slide_dur_spec_custom_seconds(s: NomSpan) -> PResult<Option<SlideDuration>> {
     use nom::branch::alt;
     use nom::bytes::complete::tag;
     use nom::character::complete::char;
     use nom::number::complete::float;
     use nom::sequence::preceded;
 
-    let (s, _) = char('[')(s)?;
     let (s, x1) = ws(float)(s)?;
     let (s, dur) = ws(alt((
         preceded(
@@ -42,7 +41,6 @@ fn t_slide_dur_custom_seconds(s: NomSpan) -> PResult<Option<SlideDuration>> {
         ),
         preceded(char('#'), t_dur_spec_absolute), // like "##0.5", no need to use ws
     )))(s)?;
-    let (s, _) = ws(char(']'))(s)?;
 
     // TODO: following cases are possible in this combinator:
     //
@@ -58,21 +56,30 @@ fn t_slide_dur_custom_seconds(s: NomSpan) -> PResult<Option<SlideDuration>> {
 }
 
 // NOTE: must run after t_slide_dur_simple
-fn t_slide_dur_custom(s: NomSpan) -> PResult<Option<SlideDuration>> {
+fn t_slide_dur_spec_custom(s: NomSpan) -> PResult<Option<SlideDuration>> {
     // TODO: following cases are possible in this combinator:
     //
     // - `[160#2.0]` -> stop time=(as in BPM 160) dur=2.0s
     // - `[3##1.5]` -> stop time=(absolute 3s) dur=1.5s
     // - `[3##4:1]` -> stop time=(absolute 3s) dur=4:1
     // - `[3.0##160#4:1]` -> stop time=(absolute 3s) dur=4:1(as in BPM 160)
-    nom::branch::alt((t_slide_dur_custom_seconds, t_slide_dur_custom_bpm))(s)
+    nom::branch::alt((t_slide_dur_spec_custom_seconds, t_slide_dur_spec_custom_bpm))(s)
 }
 
 pub fn t_slide_dur(s: NomSpan) -> PResult<Option<SlideDuration>> {
     use nom::branch::alt;
+    use nom::character::complete::char;
+    use nom::sequence::delimited;
 
-    // simple variant must come before custom
-    alt((t_slide_dur_simple, t_slide_dur_custom))(s)
+    let (s, dur) = delimited(
+        char('['),
+        // simple variant must come before custom
+        ws(alt((t_slide_dur_spec_simple, t_slide_dur_spec_custom)))
+            .expect("expected duration specification"),
+        ws(char(']').expect("missing `]` after duration specification")),
+    )(s)?;
+
+    Ok((s, dur.flatten()))
 }
 
 // FxE[dur]

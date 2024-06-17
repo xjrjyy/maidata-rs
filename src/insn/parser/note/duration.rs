@@ -61,9 +61,13 @@ pub fn t_dur(s: NomSpan) -> PResult<Option<Duration>> {
     use nom::sequence::delimited;
 
     // TODO: star-time/BPM overrides
-    let (s, dur) = delimited(char('['), ws(t_dur_spec), ws(char(']')))(s)?;
+    let (s, dur) = delimited(
+        char('['),
+        ws(t_dur_spec).expect("expected duration specification"),
+        ws(char(']').expect("missing `]` after duration specification")),
+    )(s)?;
 
-    Ok((s, dur))
+    Ok((s, dur.flatten()))
 }
 
 #[cfg(test)]
