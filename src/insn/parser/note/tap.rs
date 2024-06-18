@@ -1,20 +1,29 @@
 use super::*;
 
-pub fn t_tap_modifier(s: NomSpan, mut modifier: TapModifier) -> PResult<TapModifier> {
+pub fn t_tap_modifier_str(s: NomSpan) -> PResult<Vec<NomSpan>> {
     use nom::branch::alt;
     use nom::bytes::complete::tag;
     use nom::multi::many0;
 
-    let (s1, start_loc) = nom_locate::position(s)?;
-    let (s1, variants) = many0(ws(alt((tag("b"), tag("x"), tag("$$"), tag("$")))))(s1)?;
-    let (s1, end_loc) = nom_locate::position(s1)?;
-    for x in &variants {
+    let (s1, variants) = many0(ws(alt((tag("b"), tag("x"), tag("$$"), tag("$")))))(s)?;
+
+    Ok((if variants.is_empty() { s } else { s1 }, variants))
+}
+
+pub fn t_tap_param(s: NomSpan) -> PResult<TapParams> {
+    let (s, key) = t_key(s)?;
+    let (s, start_loc) = nom_locate::position(s)?;
+    let (s, modifier_str) = t_tap_modifier_str(s)?;
+    let (s, end_loc) = nom_locate::position(s)?;
+
+    let mut modifier = TapModifier::default();
+    for x in &modifier_str {
         match *x.fragment() {
             "b" => {
                 if modifier.is_break {
                     s.extra.borrow_mut().add_warning(
                         (start_loc, end_loc).into(),
-                        "Duplicate `b` modifier in tap instruction".to_string(),
+                        "duplicate `b` modifier in tap instruction".to_string(),
                     );
                 }
                 modifier.is_break = true;
@@ -23,7 +32,7 @@ pub fn t_tap_modifier(s: NomSpan, mut modifier: TapModifier) -> PResult<TapModif
                 if modifier.is_ex {
                     s.extra.borrow_mut().add_warning(
                         (start_loc, end_loc).into(),
-                        "Duplicate `x` modifier in tap instruction".to_string(),
+                        "duplicate `x` modifier in tap instruction".to_string(),
                     );
                 }
                 modifier.is_ex = true;
@@ -40,7 +49,7 @@ pub fn t_tap_modifier(s: NomSpan, mut modifier: TapModifier) -> PResult<TapModif
                 s.extra.borrow_mut().add_error(
                     (start_loc, end_loc).into(),
                     format!(
-                        "Duplicate `{}` shape modifier in tap instruction",
+                        "duplicate `{}` shape modifier in tap instruction",
                         x.fragment()
                     ),
                 );
@@ -49,13 +58,6 @@ pub fn t_tap_modifier(s: NomSpan, mut modifier: TapModifier) -> PResult<TapModif
             }
         }
     }
-
-    Ok((if variants.is_empty() { s } else { s1 }, modifier))
-}
-
-pub fn t_tap_param(s: NomSpan) -> PResult<TapParams> {
-    let (s, key) = t_key(s)?;
-    let (s, modifier) = t_tap_modifier(s, TapModifier::default())?;
 
     Ok((s, TapParams { key, modifier }))
 }

@@ -12,7 +12,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .filter(|e| !e.file_type().is_dir())
     {
         if entry.file_name() == "maidata.txt" {
-            println!("{:?}", entry.path());
+            // println!("{:?}", entry.path());
             parse_maidata(entry.path())?;
         }
     }
@@ -27,22 +27,24 @@ fn parse_maidata<P: AsRef<std::path::Path>>(path: P) -> Result<(), Box<dyn std::
     let content = read_file(&path);
     let (maidata, state) = maidata::container::lex_maidata(&content);
 
-    println!("Path: {:?}", path.as_ref());
-    for warning in &state.warnings {
-        println!("Warning: {}", warning);
+    if state.has_messages() {
+        println!("Path: {:?}", path.as_ref());
+        for warning in &state.warnings {
+            println!("Warning: {}", warning);
+        }
+        for error in &state.errors {
+            println!("Error: {}", error);
+        }
+        println!();
     }
-    for error in &state.errors {
-        println!("Error: {}", error);
-    }
-    println!();
 
-    for diff in maidata.iter_difficulties() {
-        println!("{} insns", diff.iter_insns().count());
+    // for diff in maidata.iter_difficulties() {
+    //     println!("{} insns", diff.iter_insns().count());
 
-        // for insn in diff.iter_insns() {
-        //     println!("{:?}", insn);
-        // }
-    }
+    //     // for insn in diff.iter_insns() {
+    //     //     println!("{:?}", insn);
+    //     // }
+    // }
 
     Ok(())
 }

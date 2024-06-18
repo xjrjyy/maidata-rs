@@ -96,6 +96,7 @@ pub(crate) fn parse_maidata_insns(s: NomSpan) -> PResult<Vec<SpRawInsn>> {
 
 fn parse_one_maidata_insn(s: NomSpan) -> PResult<Option<SpRawInsn>> {
     use nom::branch::alt;
+    use nom::combinator::map;
 
     alt((
         t_bpm,
@@ -105,9 +106,18 @@ fn parse_one_maidata_insn(s: NomSpan) -> PResult<Option<SpRawInsn>> {
         t_tap_multi_simplified,
         t_bundle,
         t_end_mark,
+        map(t_comment, |_| None),
         // TODO: handle unknown characters
         t_unknown_char,
     ))(s)
+}
+
+fn t_comment(s: NomSpan) -> PResult<()> {
+    use nom::bytes::complete::tag;
+
+    let (s, _) = tag("||")(s)?;
+    let (s, _) = nom::character::complete::not_line_ending(s)?;
+    Ok((s, ()))
 }
 
 fn t_unknown_char(s: NomSpan) -> PResult<Option<SpRawInsn>> {

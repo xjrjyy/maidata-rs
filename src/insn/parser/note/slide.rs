@@ -181,7 +181,7 @@ pub fn t_slide_track_modifier(
                 if modifier.is_break {
                     s1.extra.borrow_mut().add_warning(
                         (start_loc, end_loc).into(),
-                        "Duplicate `b` modifier in slide track instruction".to_string(),
+                        "duplicate `b` modifier in slide track instruction".to_string(),
                     );
                 }
                 modifier.is_break = true;
@@ -228,7 +228,7 @@ pub fn t_slide_track(s: NomSpan) -> PResult<Option<SlideTrack>> {
             if acc.is_break && x.is_break {
                 s.extra.borrow_mut().add_warning(
                     (start_loc, end_loc).into(),
-                    "Duplicate `b` modifier in slide track instruction".to_string(),
+                    "duplicate `b` modifier in slide track instruction".to_string(),
                 );
             }
             acc.is_break |= x.is_break;
@@ -257,43 +257,54 @@ pub fn t_slide_sep_track(s: NomSpan) -> PResult<Option<SlideTrack>> {
 }
 
 /// return (modifier, is_sudden)
-pub fn t_slide_head_modifier(
-    s: NomSpan,
-    mut modifier: TapModifier,
-) -> PResult<(TapModifier, bool)> {
+pub fn t_slide_head_modifier_str(s: NomSpan) -> PResult<Vec<NomSpan>> {
     use nom::branch::alt;
     use nom::bytes::complete::tag;
     use nom::multi::many0;
 
-    let (s1, start_loc) = nom_locate::position(s)?;
-    let (s1, variants) = many0(ws(alt((tag("b"), tag("x"), tag("@"), tag("?"), tag("!")))))(s1)?;
-    let (s1, end_loc) = nom_locate::position(s1)?;
+    let (s1, variants) = many0(ws(alt((tag("b"), tag("x"), tag("@"), tag("?"), tag("!")))))(s)?;
+
+    Ok((if variants.is_empty() { s } else { s1 }, variants))
+}
+
+pub fn t_slide(s: NomSpan) -> PResult<Option<SpRawNoteInsn>> {
+    use nom::combinator::opt;
+    use nom::multi::many0;
+
+    let (s, start_loc) = nom_locate::position(s)?;
+    let (s, start_key) = ws(opt(t_key))(s)?;
+    let (s, start_modifier_str) = t_slide_head_modifier_str(s)?;
+    let (s, first_track) = ws(t_slide_track)(s)?;
+    let (s, rest_track) = many0(ws(t_slide_sep_track))(s)?;
+    let (s, end_loc) = nom_locate::position(s)?;
+
+    let mut start_modifier = TapModifier::default();
     let mut is_sudden = false;
-    for x in &variants {
+    for x in &start_modifier_str {
         match *x.fragment() {
             "b" => {
-                if modifier.is_break {
-                    s1.extra.borrow_mut().add_warning(
+                if start_modifier.is_break {
+                    s.extra.borrow_mut().add_warning(
                         (start_loc, end_loc).into(),
-                        "Duplicate `b` modifier in slide head instruction".to_string(),
+                        "duplicate `b` modifier in slide head instruction".to_string(),
                     );
                 }
-                modifier.is_break = true;
+                start_modifier.is_break = true;
             }
             "x" => {
-                if modifier.is_ex {
-                    s1.extra.borrow_mut().add_warning(
+                if start_modifier.is_ex {
+                    s.extra.borrow_mut().add_warning(
                         (start_loc, end_loc).into(),
-                        "Duplicate `x` modifier in slide head instruction".to_string(),
+                        "duplicate `x` modifier in slide head instruction".to_string(),
                     );
                 }
-                modifier.is_ex = true;
+                start_modifier.is_ex = true;
             }
             "!" => {
                 if is_sudden {
-                    s1.extra.borrow_mut().add_warning(
+                    s.extra.borrow_mut().add_warning(
                         (start_loc, end_loc).into(),
-                        "Duplicate `!` modifier in slide head instruction".to_string(),
+                        "duplicate `!` modifier in slide head instruction".to_string(),
                     );
                 }
                 is_sudden = true;
@@ -307,39 +318,30 @@ pub fn t_slide_head_modifier(
             _ => None,
         };
         if let Some(shape) = shape {
-            if modifier.shape.is_some() {
-                s1.extra.borrow_mut().add_error(
+            if start_modifier.shape.is_some() {
+                s.extra.borrow_mut().add_error(
                     (start_loc, end_loc).into(),
                     format!(
-                        "Duplicate `{}` shape modifier in slide head instruction",
+                        "duplicate `{}` shape modifier in slide head instruction",
                         x.fragment()
                     ),
                 );
             } else {
-                modifier.shape = Some(shape);
+                start_modifier.shape = Some(shape);
             }
         }
     }
-
-    Ok((
-        if variants.is_empty() { s } else { s1 },
-        (modifier, is_sudden),
-    ))
-}
-
-pub fn t_slide(s: NomSpan) -> PResult<Option<SpRawNoteInsn>> {
-    use nom::multi::many0;
-
-    let (s, start_loc) = nom_locate::position(s)?;
-    let (s, start_key) = ws(t_key)(s)?;
-    let (s, (start_modifier, is_sudden)) = t_slide_head_modifier(s, TapModifier::default())?;
-    let start = TapParams {
+    let start = start_key.map(|start_key| TapParams {
         key: start_key,
         modifier: start_modifier,
-    };
-    let (s, first_track) = ws(t_slide_track)(s)?;
-    let (s, rest_track) = many0(ws(t_slide_sep_track))(s)?;
-    let (s, end_loc) = nom_locate::position(s)?;
+    });
+
+    if start_key.is_none() {
+        s.extra.borrow_mut().add_error(
+            (start_loc, end_loc).into(),
+            "missing start key in slide instruction".to_string(),
+        );
+    }
 
     let tracks = {
         let mut tmp = Vec::with_capacity(rest_track.len() + 1);
@@ -361,7 +363,7 @@ pub fn t_slide(s: NomSpan) -> PResult<Option<SpRawNoteInsn>> {
     let span = (start_loc, end_loc);
     Ok((
         s,
-        Some(RawNoteInsn::Slide(SlideParams { start, tracks }).with_span(span)),
+        start.map(|start| RawNoteInsn::Slide(SlideParams { start, tracks }).with_span(span)),
     ))
 }
 
