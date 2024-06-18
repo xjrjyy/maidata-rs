@@ -33,6 +33,7 @@
     - [x] SLIDE 头修饰符 `B@,` `B?xE,` `B!xE,`
 * [x] HOLD `Bh[duration],`
     - [x] BREAK 修饰符 `Bbh[duration],` (3simai)
+    - [ ] 无时值形式 `Bh,`
 * [x] SLIDE `FxE[duration],`
     - [x] 所有的星星轨迹形状 `- ^ < > v p q s z pp qq V w`
     - [x] 共享一个星星头的多条轨迹 `1-3[4:1]*-4[4:1]`
@@ -43,11 +44,13 @@
         - [x] `[3.0##1.5]`
         - [x] `[3.0##4:1]`
         - [x] `[3.0##160#4:1]`
-* [x] TOUCH `B,` (3simai)
-    - [x] FIREWORK 修饰符 `Bf,`
-* [x] TOUCH HOLD `Bh[duration],` (3simai)
+* [x] TOUCH `T,` (3simai)
+    - [x] FIREWORK 修饰符 `Tf,`
+* [x] TOUCH HOLD `Th[duration],` (3simai)
+    - [ ] 无时值形式 `Th,`
 * [x] BOTH/EACH `note/note,`
     - [x] 支持任意个数的多押 (3simai)
+    - [ ] 伪多押 ``1`2`3`4,``
 
 `duration` 格式：
 

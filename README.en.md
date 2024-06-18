@@ -34,6 +34,7 @@ Map definition instructions:
     - [x] SLIDE head modifier `B@,` `B?xE,` `B!xE,`
 * [x] HOLD `Bh[duration],`
     - [x] BREAK modifier `Bbh[duration],` (3simai)
+    - [ ] no-duration form `Bh,`
 * [x] SLIDE `FxE[duration],`
     - [x] all track shapes `- ^ < > v p q s z pp qq V w`
     - [x] multiple tracks sharing one start `1-3[4:1]*-4[4:1]`
@@ -44,11 +45,13 @@ Map definition instructions:
         - [x] `[3.0##1.5]`
         - [x] `[3.0##4:1]`
         - [x] `[3.0##160#4:1]`
-* [x] TOUCH `B,` (3simai)
-    - [x] FIREWORK modifier `Bf,`
-* [x] TOUCH HOLD `Bh[duration],` (3simai)
+* [x] TOUCH `T,` (3simai)
+    - [x] FIREWORK modifier `Tf,`
+* [x] TOUCH HOLD `Th[duration],` (3simai)
+    - [ ] no-duration form `Th,`
 * [x] BOTH/EACH `note/note,`
     - [x] arbitrary number of concurrent notes allowed (3simai)
+    - [ ] pseudo EACH ``1`2`3`4,``
 
 `duration` format:
 
