@@ -8,7 +8,7 @@ mod touch_hold;
 
 use super::*;
 
-pub use bundle::{t_bundle, t_single_note};
+pub use bundle::t_bundle;
 pub use tap::t_tap_multi_simplified;
 
 #[cfg(test)]

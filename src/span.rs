@@ -87,6 +87,63 @@ impl<'a, T, U: 'a + FnMut(NomSpan<'a>) -> PResult<T>> Expect<'a, T> for U {
     }
 }
 
+// TODO: refactor
+pub fn expect_ws_delimited<'a, F, T>(
+    mut inner: F,
+    inner_name: &'a str,
+    start: &'a str,
+    end: &'a str,
+) -> impl FnMut(NomSpan<'a>) -> PResult<'a, Option<T>>
+where
+    F: FnMut(NomSpan<'a>) -> PResult<'a, T>,
+{
+    use nom::bytes::complete::tag;
+    use nom::character::complete::multispace0;
+    use nom::combinator::opt;
+    move |i| {
+        let (i1, open) = opt(tag(start))(i)?;
+        let (i2, _) = multispace0(i1)?;
+        let (i2, result) = match inner(i2) {
+            Ok((i, result)) => (i, Some(result)),
+            Err(nom::Err::Error(_)) | Err(nom::Err::Failure(_)) => (i2, None),
+            Err(err) => return Err(err),
+        };
+        let (i3, _) = multispace0(i2)?;
+        let (i3, close) = opt(tag(end))(i3)?;
+
+        // `x` / `(`
+        if (open.is_none() || result.is_none()) && close.is_none() {
+            return Err(nom::Err::Error(nom::error::Error::new(
+                i,
+                nom::error::ErrorKind::Tag,
+            )));
+        }
+        if open.is_none() {
+            let (_, end_loc) = nom_locate::position(i)?;
+            i3.extra.borrow_mut().add_error(
+                (end_loc, end_loc).into(),
+                format!("expected `{}` before {}", start, inner_name),
+            );
+        }
+        if result.is_none() {
+            let (_, end_loc) = nom_locate::position(i1)?;
+            i3.extra.borrow_mut().add_error(
+                (end_loc, end_loc).into(),
+                format!("expected {} between `{}` and `{}`", inner_name, start, end),
+            );
+        }
+        if close.is_none() {
+            let (_, end_loc) = nom_locate::position(i2)?;
+            i3.extra.borrow_mut().add_error(
+                (end_loc, end_loc).into(),
+                format!("expected `{}` after {}", end, inner_name),
+            );
+            return Ok((i2, None));
+        }
+        Ok((i3, result))
+    }
+}
+
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
 pub struct Span {
     pub byte_offset: usize,

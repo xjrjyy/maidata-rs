@@ -2,10 +2,10 @@ mod note;
 mod position;
 
 use super::*;
-use crate::span::Expect;
+use crate::span::{expect_ws_delimited, Expect};
 use crate::{NomSpan, PResult, WithSpan};
 use nom::character::complete::multispace0;
-use note::{t_bundle, t_single_note, t_tap_multi_simplified};
+use note::{t_bundle, t_tap_multi_simplified};
 use position::*;
 
 /// remove leading whitespace
@@ -102,7 +102,6 @@ fn parse_one_maidata_insn(s: NomSpan) -> PResult<Option<SpRawInsn>> {
         t_bpm,
         t_beat_divisor,
         t_rest,
-        t_single_note,
         t_tap_multi_simplified,
         t_bundle,
         t_end_mark,
@@ -128,7 +127,7 @@ fn t_unknown_char(s: NomSpan) -> PResult<Option<SpRawInsn>> {
     let (end_loc, _) = nom_locate::position(s)?;
     s.extra.borrow_mut().add_error(
         (start_loc, end_loc).into(),
-        format!("Unknown character: `{}`", c),
+        format!("unknown character: `{}`", c),
     );
 
     Ok((s, None))
@@ -153,19 +152,10 @@ fn t_note_sep(s: NomSpan) -> PResult<()> {
 }
 
 fn t_bpm(s: NomSpan) -> PResult<Option<SpRawInsn>> {
-    use nom::character::complete::char;
     use nom::number::complete::float;
-    use nom::sequence::delimited;
 
     let (s, start_loc) = nom_locate::position(s)?;
-    // let (s, _) = char('(')(s)?;
-    // let (s, bpm) = ws(float)(s)?;
-    // let (s, _) = ws(char(')'))(s)?;
-    let (s, bpm) = delimited(
-        char('('),
-        ws(float).expect("expected BPM value"),
-        ws(char(')')).expect("missing `)` after BPM value"),
-    )(s)?;
+    let (s, bpm) = expect_ws_delimited(ws(float), "bpm value", "(", ")")(s)?;
     let (s, end_loc) = nom_locate::position(s)?;
 
     let span = (start_loc, end_loc);
@@ -209,15 +199,9 @@ fn t_beat_divisor_param(s: NomSpan) -> PResult<BeatDivisorParams> {
 }
 
 fn t_beat_divisor(s: NomSpan) -> PResult<Option<SpRawInsn>> {
-    use nom::character::complete::char;
-    use nom::sequence::delimited;
-
     let (s, start_loc) = nom_locate::position(s)?;
-    let (s, params) = delimited(
-        char('{'),
-        ws(t_beat_divisor_param).expect("expected beat divisor parameter"),
-        ws(char('}')).expect("missing `}` after beat divisor parameter"),
-    )(s)?;
+    let (s, params) =
+        expect_ws_delimited(ws(t_beat_divisor_param), "beat divisor parameter", "{", "}")(s)?;
     let (s, end_loc) = nom_locate::position(s)?;
 
     let span = (start_loc, end_loc);

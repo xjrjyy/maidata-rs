@@ -68,15 +68,12 @@ fn t_slide_dur_spec_custom(s: NomSpan) -> PResult<Option<SlideDuration>> {
 
 pub fn t_slide_dur(s: NomSpan) -> PResult<Option<SlideDuration>> {
     use nom::branch::alt;
-    use nom::character::complete::char;
-    use nom::sequence::delimited;
 
-    let (s, dur) = delimited(
-        char('['),
-        // simple variant must come before custom
-        ws(alt((t_slide_dur_spec_simple, t_slide_dur_spec_custom)))
-            .expect("expected duration specification"),
-        ws(char(']').expect("missing `]` after duration specification")),
+    let (s, dur) = expect_ws_delimited(
+        ws(alt((t_slide_dur_spec_simple, t_slide_dur_spec_custom))),
+        "slide duration",
+        "[",
+        "]",
     )(s)?;
 
     Ok((s, dur.flatten()))
@@ -278,6 +275,13 @@ pub fn t_slide(s: NomSpan) -> PResult<Option<SpRawNoteInsn>> {
     let (s, rest_track) = many0(ws(t_slide_sep_track))(s)?;
     let (s, end_loc) = nom_locate::position(s)?;
 
+    if start_key.is_none() {
+        s.extra.borrow_mut().add_error(
+            (start_loc, end_loc).into(),
+            "expected start key in slide head instruction".to_string(),
+        );
+    }
+
     let mut start_modifier = TapModifier::default();
     let mut is_sudden = false;
     for x in &start_modifier_str {
@@ -335,13 +339,6 @@ pub fn t_slide(s: NomSpan) -> PResult<Option<SpRawNoteInsn>> {
         key: start_key,
         modifier: start_modifier,
     });
-
-    if start_key.is_none() {
-        s.extra.borrow_mut().add_error(
-            (start_loc, end_loc).into(),
-            "missing start key in slide instruction".to_string(),
-        );
-    }
 
     let tracks = {
         let mut tmp = Vec::with_capacity(rest_track.len() + 1);
