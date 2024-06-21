@@ -1,6 +1,6 @@
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct BpmParams {
-    pub new_bpm: f32,
+    pub new_bpm: f64,
 }
 
 impl std::fmt::Display for BpmParams {
@@ -12,7 +12,7 @@ impl std::fmt::Display for BpmParams {
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum BeatDivisorParams {
     NewDivisor(u32),
-    NewAbsoluteDuration(f32),
+    NewAbsoluteDuration(f64),
 }
 
 impl std::fmt::Display for BeatDivisorParams {

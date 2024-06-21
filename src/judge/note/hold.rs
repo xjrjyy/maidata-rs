@@ -7,16 +7,16 @@ use crate::materialize::MaterializedHold;
 #[derive(Clone, Debug)]
 pub struct Hold {
     pub sensor: TouchSensor,
-    pub appear_time: f32,
-    pub tail_time: f32,
+    pub appear_time: f64,
+    pub tail_time: f64,
     pub _is_break: bool,
     pub _is_ex: bool,
 
     head_judge_type: JudgeType,
     pub head_result: Option<Timing>,
     pub prev_state: Option<bool>,
-    prev_time: Option<f32>,
-    release_time: f32,
+    prev_time: Option<f64>,
+    release_time: f64,
 
     result: Option<Timing>,
 }
@@ -44,12 +44,12 @@ impl From<MaterializedHold> for Hold {
 }
 
 impl JudgeNote for Hold {
-    fn get_start_time(&self) -> f32 {
+    fn get_start_time(&self) -> f64 {
         self.appear_time + JUDGE_DATA.judge_param(self.head_judge_type).as_ref()[Timing::TooFast]
     }
 
-    fn get_end_time(&self) -> f32 {
-        f32::max(
+    fn get_end_time(&self) -> f64 {
+        f64::max(
             self.appear_time
                 + JUDGE_DATA.judge_param(self.head_judge_type).as_ref()[Timing::LateGood],
             self.tail_time,
@@ -60,7 +60,7 @@ impl JudgeNote for Hold {
         Some(self.sensor)
     }
 
-    fn on_sensor(&mut self, current_time: f32) -> OnSensorResult {
+    fn on_sensor(&mut self, current_time: f64) -> OnSensorResult {
         assert!(self.result.is_none());
         if current_time < self.get_start_time() {
             return OnSensorResult::TooFast;
@@ -74,7 +74,7 @@ impl JudgeNote for Hold {
         }
     }
 
-    fn judge(&mut self, simulator: &TouchSensorStates, current_time: f32) {
+    fn judge(&mut self, simulator: &TouchSensorStates, current_time: f64) {
         assert!(self.result.is_none());
         let curr_state = simulator.sensor_is_on(self.sensor);
         if current_time < self.appear_time + JUDGE_DATA.judge_hold_head_s() {
@@ -89,11 +89,11 @@ impl JudgeNote for Hold {
             && self.appear_time + JUDGE_DATA.judge_hold_head_s()
                 <= self.tail_time - JUDGE_DATA.judge_hold_tail_s()
         {
-            self.release_time += f32::max(
-                f32::min(
+            self.release_time += f64::max(
+                f64::min(
                     current_time,
                     self.tail_time - JUDGE_DATA.judge_hold_tail_s(),
-                ) - f32::max(prev_time, self.appear_time + JUDGE_DATA.judge_hold_head_s()),
+                ) - f64::max(prev_time, self.appear_time + JUDGE_DATA.judge_hold_head_s()),
                 0.0,
             );
         }

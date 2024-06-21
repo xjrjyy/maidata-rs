@@ -6,9 +6,9 @@ use crate::insn::{Key, TouchSensor};
 use crate::transform::NormalizedSlideSegmentShape;
 use serde::{Deserialize, Serialize};
 
-pub type TimestampInSeconds = f32;
+pub type TimestampInSeconds = f64;
 
-pub type DurationInSeconds = f32;
+pub type DurationInSeconds = f64;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "type")]
@@ -30,7 +30,7 @@ pub enum Note {
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct MaterializedBpm {
     pub ts: TimestampInSeconds,
-    pub bpm: f32,
+    pub bpm: f64,
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]

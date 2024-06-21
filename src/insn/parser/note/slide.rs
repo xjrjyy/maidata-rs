@@ -11,11 +11,11 @@ fn t_slide_dur_spec_simple(s: NomSpan) -> PResult<Option<SlideDuration>> {
 
 fn t_slide_dur_spec_custom_bpm(s: NomSpan) -> PResult<Option<SlideDuration>> {
     use nom::character::complete::char;
-    use nom::number::complete::float;
+    use nom::number::complete::double;
 
-    let (s, bpm) = ws(float)(s)?;
+    let (s, bpm) = ws(double)(s)?;
     let (s, _) = ws(char('#'))(s)?;
-    let (s, dur) = ws(float)(s)?;
+    let (s, dur) = ws(double)(s)?;
 
     Ok((
         s,
@@ -30,10 +30,10 @@ fn t_slide_dur_spec_custom_seconds(s: NomSpan) -> PResult<Option<SlideDuration>>
     use nom::branch::alt;
     use nom::bytes::complete::tag;
     use nom::character::complete::char;
-    use nom::number::complete::float;
+    use nom::number::complete::double;
     use nom::sequence::preceded;
 
-    let (s, x1) = ws(float)(s)?;
+    let (s, x1) = ws(double)(s)?;
     let (s, dur) = ws(alt((
         preceded(
             tag("##"),

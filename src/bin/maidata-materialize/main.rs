@@ -7,7 +7,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .expect("usage: $0 <input> <output> <offset?>");
     let offset = std::env::args()
         .nth(3)
-        .map(|x| x.parse::<f32>().expect("parsing offset failed"))
+        .map(|x| x.parse::<f64>().expect("parsing offset failed"))
         .unwrap_or(0.0);
 
     let content = read_file(input);

@@ -173,7 +173,7 @@ impl std::convert::TryFrom<(char, Option<u8>)> for TouchSensor {
 pub enum Duration {
     NumBeats(NumBeatsParams),
     BpmNumBeats(BpmNumBeatsParams),
-    Seconds(f32),
+    Seconds(f64),
 }
 
 impl std::fmt::Display for Duration {
@@ -200,7 +200,7 @@ impl std::fmt::Display for NumBeatsParams {
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct BpmNumBeatsParams {
-    pub bpm: f32,
+    pub bpm: f64,
     pub divisor: u32,
     pub num: u32,
 }

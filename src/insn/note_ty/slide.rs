@@ -2,8 +2,8 @@ use super::*;
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum SlideStopTimeSpec {
-    Bpm(f32),
-    Seconds(f32),
+    Bpm(f64),
+    Seconds(f64),
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]

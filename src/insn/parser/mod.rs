@@ -152,10 +152,10 @@ fn t_note_sep(s: NomSpan) -> PResult<()> {
 }
 
 fn t_bpm(s: NomSpan) -> PResult<Option<SpRawInsn>> {
-    use nom::number::complete::float;
+    use nom::number::complete::double;
 
     let (s, start_loc) = nom_locate::position(s)?;
-    let (s, bpm) = expect_ws_delimited(ws(float), "bpm value", "(", ")")(s)?;
+    let (s, bpm) = expect_ws_delimited(ws(double), "bpm value", "(", ")")(s)?;
     let (s, end_loc) = nom_locate::position(s)?;
 
     let span = (start_loc, end_loc);
@@ -166,12 +166,12 @@ fn t_bpm(s: NomSpan) -> PResult<Option<SpRawInsn>> {
     ))
 }
 
-fn t_absolute_duration(s: NomSpan) -> PResult<f32> {
+fn t_absolute_duration(s: NomSpan) -> PResult<f64> {
     use nom::character::complete::char;
-    use nom::number::complete::float;
+    use nom::number::complete::double;
 
     let (s, _) = char('#')(s)?;
-    let (s, dur) = ws(float)(s)?;
+    let (s, dur) = ws(double)(s)?;
 
     Ok((s, dur))
 }

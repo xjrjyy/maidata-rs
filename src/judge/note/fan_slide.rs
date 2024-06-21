@@ -46,7 +46,7 @@ impl TryFrom<MaterializedSlideTrack> for FanSlide {
 }
 
 impl JudgeNote for FanSlide {
-    fn get_start_time(&self) -> f32 {
+    fn get_start_time(&self) -> f64 {
         self.sub_slides
             .iter()
             .map(|slide| slide.get_start_time())
@@ -54,7 +54,7 @@ impl JudgeNote for FanSlide {
             .unwrap()
     }
 
-    fn get_end_time(&self) -> f32 {
+    fn get_end_time(&self) -> f64 {
         self.sub_slides
             .iter()
             .map(|slide| slide.get_end_time())
@@ -62,7 +62,7 @@ impl JudgeNote for FanSlide {
             .unwrap()
     }
 
-    fn judge(&mut self, getter: &TouchSensorStates, current_time: f32) {
+    fn judge(&mut self, getter: &TouchSensorStates, current_time: f64) {
         for slide in &mut self.sub_slides {
             slide.judge(getter, current_time);
         }

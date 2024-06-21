@@ -13,11 +13,11 @@ pub struct Maidata {
     artist: String,
 
     fallback_designer: Option<String>,
-    fallback_offset: Option<f32>,
+    fallback_offset: Option<f64>,
     fallback_single_message: Option<String>,
 
     // XXX: is wholebpm mandatory?
-    _star_bpm: Option<f32>,
+    _star_bpm: Option<f64>,
 
     difficulties: Vec<BeatmapData>,
 }
@@ -45,7 +45,7 @@ impl Maidata {
 pub struct BeatmapData {
     difficulty: crate::Difficulty,
     designer: Option<String>,
-    offset: Option<f32>,
+    offset: Option<f64>,
     level: Option<crate::Level>,
     insns: Vec<crate::Sp<crate::insn::RawInsn>>,
     single_message: Option<String>,
@@ -81,7 +81,7 @@ impl<'a> AssociatedBeatmapData<'a> {
             .or(self.global.fallback_designer.as_deref())
     }
 
-    pub fn offset(&self) -> Option<f32> {
+    pub fn offset(&self) -> Option<f64> {
         self.map.offset.or(self.global.fallback_offset)
     }
 

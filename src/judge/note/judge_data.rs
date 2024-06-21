@@ -4,11 +4,11 @@ use lazy_static::lazy_static;
 
 #[derive(Clone, Debug)]
 pub struct JudgeData {
-    judge_adjust_s: f32,
-    judge_hold_head_s: f32,
-    judge_hold_tail_s: f32,
-    judge_touch_hold_head_s: f32,
-    judge_touch_hold_tail_s: f32,
+    judge_adjust_s: f64,
+    judge_hold_head_s: f64,
+    judge_hold_tail_s: f64,
+    judge_touch_hold_head_s: f64,
+    judge_touch_hold_tail_s: f64,
     judge_param_table: EnumMap<JudgeType, JudgeParam>,
     hold_judge_percent: [i32; 5],
     hold_judge_param: [EnumMap<Timing, Timing>; 5],
@@ -25,72 +25,72 @@ impl JudgeData {
             judge_touch_hold_tail_s: 0.15 + judge_adjust_s,
             judge_param_table: EnumMap::from_array([
                 JudgeParam::new([
-                    -9f32,
-                    -6f32,
-                    -5f32,
-                    -4f32,
-                    -3f32,
-                    -2f32,
-                    -1f32,
-                    1f32,
-                    2f32,
-                    3f32,
-                    4f32,
-                    5f32,
-                    6f32,
-                    9f32,
-                    f32::INFINITY,
+                    -9f64,
+                    -6f64,
+                    -5f64,
+                    -4f64,
+                    -3f64,
+                    -2f64,
+                    -1f64,
+                    1f64,
+                    2f64,
+                    3f64,
+                    4f64,
+                    5f64,
+                    6f64,
+                    9f64,
+                    f64::INFINITY,
                 ]),
                 JudgeParam::new([
-                    -9f32,
-                    -9f32,
-                    -9f32,
-                    -9f32,
-                    -9f32,
-                    -9f32,
-                    -9f32,
-                    9f32,
-                    10.5f32,
-                    12f32,
-                    13f32,
-                    14f32,
-                    15f32,
-                    18f32,
-                    f32::INFINITY,
+                    -9f64,
+                    -9f64,
+                    -9f64,
+                    -9f64,
+                    -9f64,
+                    -9f64,
+                    -9f64,
+                    9f64,
+                    10.5f64,
+                    12f64,
+                    13f64,
+                    14f64,
+                    15f64,
+                    18f64,
+                    f64::INFINITY,
                 ]),
                 JudgeParam::new([
-                    -36f32,
-                    -26f32,
-                    -22f32,
-                    -18f32,
-                    -14f32,
-                    -14f32,
-                    -14f32,
-                    14f32,
-                    14f32,
-                    14f32,
-                    16f32,
-                    22f32,
-                    26f32,
-                    36f32,
-                    f32::INFINITY,
+                    -36f64,
+                    -26f64,
+                    -22f64,
+                    -18f64,
+                    -14f64,
+                    -14f64,
+                    -14f64,
+                    14f64,
+                    14f64,
+                    14f64,
+                    16f64,
+                    22f64,
+                    26f64,
+                    36f64,
+                    f64::INFINITY,
                 ]),
                 JudgeParam::new([
-                    -9f32,
-                    -9f32,
-                    -9f32,
-                    -9f32,
-                    -9f32,
-                    -9f32,
-                    -9f32,
-                    9f32,
-                    9f32,
-                    9f32,
-                    9f32,
-                    9f32,
-                    9f32,
-                    9f32,
-                    f32::INFINITY,
+                    -9f64,
+                    -9f64,
+                    -9f64,
+                    -9f64,
+                    -9f64,
+                    -9f64,
+                    -9f64,
+                    9f64,
+                    9f64,
+                    9f64,
+                    9f64,
+                    9f64,
+                    9f64,
+                    9f64,
+                    f64::INFINITY,
                 ]),
             ]),
             hold_judge_percent: [0, 33, 67, 95, 100],
@@ -184,23 +184,23 @@ impl JudgeData {
         }
     }
 
-    pub fn judge_adjust_s(&self) -> f32 {
+    pub fn judge_adjust_s(&self) -> f64 {
         self.judge_adjust_s
     }
 
-    pub fn judge_hold_head_s(&self) -> f32 {
+    pub fn judge_hold_head_s(&self) -> f64 {
         self.judge_hold_head_s
     }
 
-    pub fn judge_hold_tail_s(&self) -> f32 {
+    pub fn judge_hold_tail_s(&self) -> f64 {
         self.judge_hold_tail_s
     }
 
-    pub fn judge_touch_hold_head_s(&self) -> f32 {
+    pub fn judge_touch_hold_head_s(&self) -> f64 {
         self.judge_touch_hold_head_s
     }
 
-    pub fn judge_touch_hold_tail_s(&self) -> f32 {
+    pub fn judge_touch_hold_tail_s(&self) -> f64 {
         self.judge_touch_hold_tail_s
     }
 
@@ -208,7 +208,7 @@ impl JudgeData {
         &self.judge_param_table[judge_type]
     }
 
-    pub fn get_timing(&self, judge_type: JudgeType, delta_time: f32) -> Timing {
+    pub fn get_timing(&self, judge_type: JudgeType, delta_time: f64) -> Timing {
         let judge_timing = &self.judge_param_table[judge_type];
         judge_timing
             .judge_flame_list
@@ -220,8 +220,8 @@ impl JudgeData {
 
     pub fn get_hold_timing(
         &self,
-        mut dur_time: f32,
-        release_time: f32,
+        mut dur_time: f64,
+        release_time: f64,
         head_reault: Timing,
         is_touch_hold: bool,
     ) -> Timing {
@@ -234,8 +234,8 @@ impl JudgeData {
             return head_reault;
         }
         // TODO: fix this
-        assert!(release_time - f32::EPSILON <= dur_time);
-        let release_percent = f32::ceil((release_time - f32::EPSILON) / dur_time * 100.0) as i32;
+        assert!(release_time - f64::EPSILON <= dur_time);
+        let release_percent = f64::ceil((release_time - f64::EPSILON) / dur_time * 100.0) as i32;
         for (i, &percent) in self.hold_judge_percent.iter().enumerate() {
             if release_percent <= percent {
                 return self.hold_judge_param[i][head_reault];

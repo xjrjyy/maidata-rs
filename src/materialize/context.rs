@@ -13,13 +13,13 @@ pub struct MaterializationContext {
     // TODO: is slides' default stop time really independent of BPM changes?
     // currently it is dependent -- add a separate non-changing value (initialized by the "wholebpm"
     // thing) to move to independent
-    curr_beat_dur: f32,
-    curr_note_dur: f32,
-    curr_ts: f32,
+    curr_beat_dur: f64,
+    curr_note_dur: f64,
+    curr_ts: f64,
 }
 
 impl MaterializationContext {
-    pub fn with_offset(offset_secs: f32) -> Self {
+    pub fn with_offset(offset_secs: f64) -> Self {
         Self {
             curr_beat_dur: 0.0,
             curr_note_dur: 0.0,
@@ -83,7 +83,7 @@ impl MaterializationContext {
         }
     }
 
-    fn set_bpm(&mut self, new_bpm: f32) {
+    fn set_bpm(&mut self, new_bpm: f64) {
         self.curr_beat_dur = bpm_to_beat_dur(new_bpm);
     }
 
@@ -93,13 +93,13 @@ impl MaterializationContext {
 
     /// Advances timestamp by one "note", return the timestamp before advancing (that of the
     /// current note being materialized).
-    fn advance_time(&mut self) -> f32 {
+    fn advance_time(&mut self) -> f64 {
         let res = self.curr_ts;
         self.curr_ts += self.curr_note_dur;
         res
     }
 
-    fn materialize_raw_note(&self, ts: f32, raw_note: &insn::RawNoteInsn) -> Vec<Note> {
+    fn materialize_raw_note(&self, ts: f64, raw_note: &insn::RawNoteInsn) -> Vec<Note> {
         match raw_note {
             insn::RawNoteInsn::Tap(params) => {
                 let m_params = materialize_tap_params(ts, params, false);
@@ -122,15 +122,15 @@ impl MaterializationContext {
     }
 }
 
-fn bpm_to_beat_dur(bpm: f32) -> f32 {
+fn bpm_to_beat_dur(bpm: f64) -> f64 {
     60.0 / bpm
 }
 
-fn divide_beat(beat_dur: f32, beat_divisor: u32) -> f32 {
-    beat_dur * 4.0 / (beat_divisor as f32)
+fn divide_beat(beat_dur: f64, beat_divisor: u32) -> f64 {
+    beat_dur * 4.0 / (beat_divisor as f64)
 }
 
-fn materialize_tap_params(ts: f32, p: &insn::TapParams, is_slide_star: bool) -> MaterializedTap {
+fn materialize_tap_params(ts: f64, p: &insn::TapParams, is_slide_star: bool) -> MaterializedTap {
     let shape = match p.modifier.shape {
         Some(insn::TapShape::Ring) => MaterializedTapShape::Ring,
         Some(insn::TapShape::Star) => MaterializedTapShape::Star,
@@ -155,7 +155,7 @@ fn materialize_tap_params(ts: f32, p: &insn::TapParams, is_slide_star: bool) -> 
     }
 }
 
-fn materialize_touch_params(ts: f32, p: &insn::TouchParams) -> MaterializedTouch {
+fn materialize_touch_params(ts: f64, p: &insn::TouchParams) -> MaterializedTouch {
     MaterializedTouch {
         ts,
         sensor: p.sensor,
@@ -163,7 +163,7 @@ fn materialize_touch_params(ts: f32, p: &insn::TouchParams) -> MaterializedTouch
 }
 
 /// slide insn -> `vec![star tap, track, track, ...]`
-fn materialize_slide(ts: f32, beat_dur: f32, p: &insn::SlideParams) -> Vec<Note> {
+fn materialize_slide(ts: f64, beat_dur: f64, p: &insn::SlideParams) -> Vec<Note> {
     // star
     let star = Note::Tap(materialize_tap_params(ts, &p.start, true));
     let start_key = p.start.key;
@@ -180,8 +180,8 @@ fn materialize_slide(ts: f32, beat_dur: f32, p: &insn::SlideParams) -> Vec<Note>
 }
 
 fn materialize_slide_track(
-    ts: f32,
-    beat_dur: f32,
+    ts: f64,
+    beat_dur: f64,
     start_key: insn::Key,
     track: &insn::SlideTrack,
 ) -> MaterializedSlideTrack {
@@ -221,7 +221,7 @@ fn materialize_slide_track(
 }
 
 fn materialize_slide_segment_group(
-    beat_dur: f32,
+    beat_dur: f64,
     start: insn::Key,
     group: &insn::SlideSegmentGroup,
 ) -> MaterializedSlideSegmentGroup {
@@ -259,7 +259,7 @@ fn materialize_slide_segment(
     }
 }
 
-fn materialize_hold_params(ts: f32, beat_dur: f32, p: &insn::HoldParams) -> MaterializedHold {
+fn materialize_hold_params(ts: f64, beat_dur: f64, p: &insn::HoldParams) -> MaterializedHold {
     MaterializedHold {
         ts,
         dur: materialize_duration(p.dur, beat_dur),
@@ -270,8 +270,8 @@ fn materialize_hold_params(ts: f32, beat_dur: f32, p: &insn::HoldParams) -> Mate
 }
 
 fn materialize_touch_hold_params(
-    ts: f32,
-    beat_dur: f32,
+    ts: f64,
+    beat_dur: f64,
     p: &insn::TouchHoldParams,
 ) -> MaterializedTouchHold {
     MaterializedTouchHold {
@@ -281,18 +281,18 @@ fn materialize_touch_hold_params(
     }
 }
 
-fn materialize_duration(x: insn::Duration, beat_dur: f32) -> f32 {
+fn materialize_duration(x: insn::Duration, beat_dur: f64) -> f64 {
     match x {
-        insn::Duration::NumBeats(p) => divide_beat(beat_dur, p.divisor) * (p.num as f32),
+        insn::Duration::NumBeats(p) => divide_beat(beat_dur, p.divisor) * (p.num as f64),
         insn::Duration::BpmNumBeats(p) => {
             let beat_dur = bpm_to_beat_dur(p.bpm);
-            divide_beat(beat_dur, p.divisor) * (p.num as f32)
+            divide_beat(beat_dur, p.divisor) * (p.num as f64)
         }
         insn::Duration::Seconds(x) => x,
     }
 }
 
-fn stop_time_spec_to_dur(x: insn::SlideStopTimeSpec) -> f32 {
+fn stop_time_spec_to_dur(x: insn::SlideStopTimeSpec) -> f64 {
     match x {
         insn::SlideStopTimeSpec::Bpm(override_bpm) => bpm_to_beat_dur(override_bpm),
         insn::SlideStopTimeSpec::Seconds(x) => x,

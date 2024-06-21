@@ -23,7 +23,7 @@ pub(crate) fn key_to_sensor(key: Key) -> TouchSensor {
     TouchSensor::new('A', Some(key.index())).unwrap()
 }
 
-pub const FRAME_RATE: f32 = 60.0;
+pub const FRAME_RATE: f64 = 60.0;
 
 #[derive(Copy, Clone, Eq, PartialEq, PartialOrd, Ord, Hash, Debug, Enum)]
 pub enum Timing {
@@ -54,19 +54,19 @@ pub enum JudgeType {
 
 #[derive(Clone, Debug)]
 pub struct JudgeParam {
-    judge_flame_list: EnumMap<Timing, f32>,
+    judge_flame_list: EnumMap<Timing, f64>,
 }
 
 impl JudgeParam {
-    fn new(judge_flame_list: [f32; 15]) -> Self {
+    fn new(judge_flame_list: [f64; 15]) -> Self {
         Self {
             judge_flame_list: EnumMap::from_fn(|i| judge_flame_list[i as usize] / FRAME_RATE),
         }
     }
 }
 
-impl AsRef<EnumMap<Timing, f32>> for JudgeParam {
-    fn as_ref(&self) -> &EnumMap<Timing, f32> {
+impl AsRef<EnumMap<Timing, f64>> for JudgeParam {
+    fn as_ref(&self) -> &EnumMap<Timing, f64> {
         &self.judge_flame_list
     }
 }
@@ -122,12 +122,12 @@ impl Default for TouchSensorStates {
 // + note is too late (all)
 // don't call on_sensor() or judge() when note's result is already determined
 pub trait JudgeNote {
-    fn get_start_time(&self) -> f32;
-    fn get_end_time(&self) -> f32;
-    fn is_too_fast(&self, current_time: f32) -> bool {
+    fn get_start_time(&self) -> f64;
+    fn get_end_time(&self) -> f64;
+    fn is_too_fast(&self, current_time: f64) -> bool {
         current_time < self.get_start_time()
     }
-    fn is_too_late(&self, current_time: f32) -> bool {
+    fn is_too_late(&self, current_time: f64) -> bool {
         current_time >= self.get_end_time()
     }
 
@@ -135,10 +135,10 @@ pub trait JudgeNote {
         None
     }
     // return true if consumed
-    fn on_sensor(&mut self, _current_time: f32) -> OnSensorResult {
+    fn on_sensor(&mut self, _current_time: f64) -> OnSensorResult {
         OnSensorResult::TooLate
     }
-    fn judge(&mut self, _getter: &TouchSensorStates, _current_time: f32);
+    fn judge(&mut self, _getter: &TouchSensorStates, _current_time: f64);
 
     fn get_judge_result(&self) -> Option<Timing>;
 }
@@ -210,19 +210,19 @@ pub enum OnSensorResult {
 }
 
 impl JudgeNote for Note {
-    fn get_start_time(&self) -> f32 {
+    fn get_start_time(&self) -> f64 {
         self.get_impl().get_start_time()
     }
 
-    fn get_end_time(&self) -> f32 {
+    fn get_end_time(&self) -> f64 {
         self.get_impl().get_end_time()
     }
 
-    fn is_too_fast(&self, current_time: f32) -> bool {
+    fn is_too_fast(&self, current_time: f64) -> bool {
         self.get_impl().is_too_fast(current_time)
     }
 
-    fn is_too_late(&self, current_time: f32) -> bool {
+    fn is_too_late(&self, current_time: f64) -> bool {
         self.get_impl().is_too_late(current_time)
     }
 
@@ -230,11 +230,11 @@ impl JudgeNote for Note {
         self.get_impl().get_sensor()
     }
 
-    fn on_sensor(&mut self, current_time: f32) -> OnSensorResult {
+    fn on_sensor(&mut self, current_time: f64) -> OnSensorResult {
         self.get_impl_mut().on_sensor(current_time)
     }
 
-    fn judge(&mut self, simulator: &TouchSensorStates, current_time: f32) {
+    fn judge(&mut self, simulator: &TouchSensorStates, current_time: f64) {
         self.get_impl_mut().judge(simulator, current_time)
     }
 

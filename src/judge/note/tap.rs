@@ -7,7 +7,7 @@ use crate::materialize::MaterializedTap;
 #[derive(Clone, Debug)]
 pub struct Tap {
     pub sensor: TouchSensor,
-    pub appear_time: f32,
+    pub appear_time: f64,
     pub _is_break: bool,
     pub _is_ex: bool,
 
@@ -34,11 +34,11 @@ impl From<MaterializedTap> for Tap {
 }
 
 impl JudgeNote for Tap {
-    fn get_start_time(&self) -> f32 {
+    fn get_start_time(&self) -> f64 {
         self.appear_time + JUDGE_DATA.judge_param(self.judge_type).as_ref()[Timing::TooFast]
     }
 
-    fn get_end_time(&self) -> f32 {
+    fn get_end_time(&self) -> f64 {
         self.appear_time + JUDGE_DATA.judge_param(self.judge_type).as_ref()[Timing::LateGood]
     }
 
@@ -46,7 +46,7 @@ impl JudgeNote for Tap {
         Some(self.sensor)
     }
 
-    fn on_sensor(&mut self, current_time: f32) -> OnSensorResult {
+    fn on_sensor(&mut self, current_time: f64) -> OnSensorResult {
         assert!(self.result.is_none());
         if self.is_too_fast(current_time) {
             return OnSensorResult::TooFast;
@@ -59,7 +59,7 @@ impl JudgeNote for Tap {
         }
     }
 
-    fn judge(&mut self, _simulator: &TouchSensorStates, current_time: f32) {
+    fn judge(&mut self, _simulator: &TouchSensorStates, current_time: f64) {
         assert!(self.result.is_none());
         if self.is_too_late(current_time) {
             self.result = Some(Timing::TooLate);

@@ -10,8 +10,8 @@ use crate::transform::{
 #[derive(Clone, Debug)]
 pub struct Slide {
     pub path: Vec<Vec<TouchSensor>>,
-    pub appear_time: f32,
-    pub tail_time: f32,
+    pub appear_time: f64,
+    pub tail_time: f64,
     pub _is_break: bool,
 
     judge_check_sensor_1: bool,
@@ -37,7 +37,7 @@ impl TryFrom<MaterializedSlideTrack> for Slide {
         }) {
             return Err("Fan Slide is not supported");
         }
-        let dur = m.groups.iter().map(|group| group.dur).sum::<f32>();
+        let dur = m.groups.iter().map(|group| group.dur).sum::<f64>();
         // TODO: Implement slide path getter
         let normalized_track = NormalizedSlideTrack {
             groups: m
@@ -85,7 +85,7 @@ impl Slide {
         parent: &MaterializedSlideTrack,
     ) -> Result<Self, &'static str> {
         assert!(segment.shape == NormalizedSlideSegmentShape::Fan);
-        let dur = parent.groups.iter().map(|group| group.dur).sum::<f32>();
+        let dur = parent.groups.iter().map(|group| group.dur).sum::<f64>();
         Ok(Self {
             path: SLIDE_PATH_GETTER
                 .get_by_segment(&materialized_to_normalized_slide_segment(segment))
@@ -147,7 +147,7 @@ impl Slide {
         self.path.len() > 3 || self.judge_index + 1 != self.path.len() - 1
     }
 
-    fn compute_judge_result(&self, current_time: f32) -> Option<Timing> {
+    fn compute_judge_result(&self, current_time: f64) -> Option<Timing> {
         if self.judge_index < self.path.len() {
             return None;
         }
@@ -161,16 +161,16 @@ impl Slide {
 }
 
 impl JudgeNote for Slide {
-    fn get_start_time(&self) -> f32 {
+    fn get_start_time(&self) -> f64 {
         // TODO: check if this is correct
         self.appear_time + JUDGE_DATA.judge_param(JudgeType::Tap).as_ref()[Timing::FastGood]
     }
 
-    fn get_end_time(&self) -> f32 {
+    fn get_end_time(&self) -> f64 {
         self.tail_time + JUDGE_DATA.judge_param(self.judge_type).as_ref()[Timing::LateGood]
     }
 
-    fn judge(&mut self, simulator: &TouchSensorStates, current_time: f32) {
+    fn judge(&mut self, simulator: &TouchSensorStates, current_time: f64) {
         assert!(self.result.is_none());
         // Do not judge if too late
         if self.is_too_late(current_time) {

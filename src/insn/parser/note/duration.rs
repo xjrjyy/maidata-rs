@@ -20,9 +20,9 @@ pub fn t_dur_spec_num_beats(s: NomSpan) -> PResult<Option<Duration>> {
 
 pub fn t_dur_spec_bpm_num_beats(s: NomSpan) -> PResult<Option<Duration>> {
     use nom::character::complete::char;
-    use nom::number::complete::float;
+    use nom::number::complete::double;
 
-    let (s, bpm) = float(s)?;
+    let (s, bpm) = double(s)?;
     let (s, _) = ws(char('#'))(s)?;
     let (s, dur) = ws(t_dur_spec_num_beats)(s)?;
     let (divisor, num) = match dur {
