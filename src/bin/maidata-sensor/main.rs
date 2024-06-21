@@ -151,6 +151,7 @@ fn parse_maidata(diff: &AssociatedBeatmapData) -> Option<Vec<Vec<Note>>> {
     let mut notes = notes
         .into_iter()
         .map(|note| match &note {
+            MaterializedNote::Bpm(_) => todo!(),
             MaterializedNote::Tap(params) => Note {
                 sensors: vec![key_to_sensor(params.key)],
                 dur: params.ts - TAP_JUDGE_THRESHOLD..params.ts,

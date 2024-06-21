@@ -1,4 +1,5 @@
 use crate::insn::{Key, TouchSensor};
+use serde::{Deserialize, Serialize};
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct NormalizedTapParams {
@@ -204,7 +205,9 @@ impl NormalizedSlideSegment {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Enum)]
+#[derive(
+    Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Enum, Serialize, Deserialize,
+)]
 pub enum NormalizedSlideSegmentShape {
     Straight, // -
     CircleL,  // counterclockwise

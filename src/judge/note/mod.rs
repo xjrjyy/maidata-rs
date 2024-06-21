@@ -182,6 +182,7 @@ impl TryFrom<MaterializedNote> for Note {
 
     fn try_from(note: MaterializedNote) -> Result<Self, Self::Error> {
         match note {
+            MaterializedNote::Bpm(_) => todo!(""),
             MaterializedNote::Tap(t) => Ok(Note::Tap(t.into())),
             MaterializedNote::Touch(t) => Ok(Note::Touch(t.into())),
             MaterializedNote::SlideTrack(s) => {

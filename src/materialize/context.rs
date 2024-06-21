@@ -1,7 +1,9 @@
+use std::vec;
+
 use super::Note;
 use crate::insn;
 use crate::materialize::{
-    MaterializedHold, MaterializedSlideSegment, MaterializedSlideSegmentGroup,
+    MaterializedBpm, MaterializedHold, MaterializedSlideSegment, MaterializedSlideSegmentGroup,
     MaterializedSlideTrack, MaterializedTap, MaterializedTapShape, MaterializedTouch,
     MaterializedTouchHold,
 };
@@ -42,7 +44,10 @@ impl MaterializationContext {
         match insn.deref() {
             insn::RawInsn::Bpm(params) => {
                 self.set_bpm(params.new_bpm);
-                vec![]
+                vec![Note::Bpm(MaterializedBpm {
+                    ts: self.curr_ts,
+                    bpm: params.new_bpm,
+                })]
             }
             insn::RawInsn::BeatDivisor(params) => {
                 match params {

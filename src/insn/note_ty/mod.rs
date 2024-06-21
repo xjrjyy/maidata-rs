@@ -10,9 +10,31 @@ pub use tap::*;
 pub use touch::*;
 pub use touch_hold::*;
 
+use serde::{Deserialize, Serialize};
+
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct Key {
     index: u8,
+}
+
+impl Serialize for Key {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&format!("{}", self))
+    }
+}
+
+impl<'de> Deserialize<'de> for Key {
+    fn deserialize<D>(deserializer: D) -> Result<Key, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        let x = s.parse().map_err(serde::de::Error::custom)?;
+        Key::new(x).map_err(serde::de::Error::custom)
+    }
 }
 
 impl std::fmt::Display for Key {
@@ -39,6 +61,14 @@ pub enum KeyParseError {
     InvalidKey(u8),
 }
 
+impl std::fmt::Display for KeyParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            KeyParseError::InvalidKey(x) => write!(f, "invalid key: {}", x),
+        }
+    }
+}
+
 impl std::convert::TryFrom<u8> for Key {
     type Error = KeyParseError;
 
@@ -51,6 +81,35 @@ impl std::convert::TryFrom<u8> for Key {
 pub struct TouchSensor {
     group: char,
     index: Option<u8>,
+}
+
+impl Serialize for TouchSensor {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&format!("{}", self))
+    }
+}
+
+impl<'de> Deserialize<'de> for TouchSensor {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        let mut chars = s.chars();
+        if s.len() == 1 {
+            let group = chars.next().unwrap();
+            TouchSensor::new(group, None).map_err(serde::de::Error::custom)
+        } else if s.len() == 2 {
+            let group = chars.next().unwrap();
+            let index = chars.next().unwrap().to_digit(10).map(|x| x as u8);
+            TouchSensor::new(group, index).map_err(serde::de::Error::custom)
+        } else {
+            Err(serde::de::Error::custom("invalid touch sensor"))
+        }
+    }
 }
 
 impl std::fmt::Display for TouchSensor {
@@ -85,6 +144,21 @@ impl TouchSensor {
 #[derive(Clone, Debug)]
 pub enum TouchSensorParseError {
     InvalidTouchSensor(char, Option<u8>),
+}
+
+impl std::fmt::Display for TouchSensorParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TouchSensorParseError::InvalidTouchSensor(group, index) => {
+                write!(
+                    f,
+                    "invalid touch sensor: {}{}",
+                    group,
+                    index.map_or(String::new(), |x| x.to_string())
+                )
+            }
+        }
+    }
 }
 
 impl std::convert::TryFrom<(char, Option<u8>)> for TouchSensor {
