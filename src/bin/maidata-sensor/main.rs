@@ -150,6 +150,7 @@ fn parse_maidata(diff: &AssociatedBeatmapData) -> Option<Vec<Vec<Note>>> {
 
     let mut notes = notes
         .into_iter()
+        .map(|note| (*note).clone())
         .map(|note| match &note {
             MaterializedNote::Bpm(_) => todo!(),
             MaterializedNote::Tap(params) => Note {

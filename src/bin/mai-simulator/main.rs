@@ -15,7 +15,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut notes = mcx
         .materialize_insns(&notes)
         .into_iter()
-        .map(std::convert::TryInto::try_into)
+        .map(|note| Note::try_from((*note).clone()))
         .collect::<Result<Vec<Note>, _>>()?;
     notes.sort_by(|a, b| a.get_start_time().partial_cmp(&b.get_start_time()).unwrap());
 

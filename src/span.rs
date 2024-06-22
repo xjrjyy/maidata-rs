@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 
 pub type NomSpan<'a> = nom_locate::LocatedSpan<&'a str, &'a RefCell<ParseState>>;
@@ -144,7 +145,7 @@ where
     }
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Serialize, Deserialize)]
 pub struct Span {
     pub byte_offset: usize,
     pub line: usize,

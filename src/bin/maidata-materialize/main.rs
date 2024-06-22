@@ -21,12 +21,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .iter()
             .map(|msg| {
                 serde_json::json!({
-                    "span": {
-                        "start_line": msg.span.line,
-                        "start_col": msg.span.col,
-                        "end_line": msg.span.end_line,
-                        "end_col": msg.span.end_col,
-                    },
+                    "span": msg.span,
                     "message": msg.message,
                 })
             })
@@ -34,7 +29,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     let json = serde_json::json!({
-        "chart": notes,
+        "chart": notes.iter().map(|note| {
+            // serde_json::json!({
+            //     "span": note.span(),
+            //     **note,
+            // })
+            let json = serde_json::to_value(&**note).expect("serializing note failed");
+            let mut json = json.as_object().expect("json is not an object").clone();
+            json.insert("span".to_string(), serde_json::to_value(note.span()).expect("serializing span failed"));
+            serde_json::Value::Object(json)
+        }).collect::<Vec<_>>(),
         "warnings": messages_to_value(&state.warnings),
         "errors": messages_to_value(&state.errors),
     });

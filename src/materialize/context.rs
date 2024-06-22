@@ -1,13 +1,13 @@
 use std::vec;
 
 use super::Note;
-use crate::insn;
 use crate::materialize::{
     MaterializedBpm, MaterializedHold, MaterializedSlideSegment, MaterializedSlideSegmentGroup,
     MaterializedSlideTrack, MaterializedTap, MaterializedTapShape, MaterializedTouch,
     MaterializedTouchHold,
 };
 use crate::transform;
+use crate::{insn, Sp, WithSpan};
 
 pub struct MaterializationContext {
     // TODO: is slides' default stop time really independent of BPM changes?
@@ -28,10 +28,10 @@ impl MaterializationContext {
     }
 
     /// Materialize a list of raw instructions into notes.
-    pub fn materialize_insns<'a, I: IntoIterator<Item = &'a crate::Sp<insn::RawInsn>>>(
+    pub fn materialize_insns<'a, I: IntoIterator<Item = &'a Sp<insn::RawInsn>>>(
         &mut self,
         insns: I,
-    ) -> Vec<Note> {
+    ) -> Vec<Sp<Note>> {
         insns
             .into_iter()
             .flat_map(|insn| self.materialize_raw_insn(insn))
@@ -39,7 +39,7 @@ impl MaterializationContext {
     }
 
     /// Read in one raw instruction and materialize into note(s) if applicable.
-    fn materialize_raw_insn(&mut self, insn: &crate::Sp<insn::RawInsn>) -> Vec<Note> {
+    fn materialize_raw_insn(&mut self, insn: &Sp<insn::RawInsn>) -> Vec<Sp<Note>> {
         use std::ops::Deref;
         match insn.deref() {
             insn::RawInsn::Bpm(params) => {
@@ -47,7 +47,8 @@ impl MaterializationContext {
                 vec![Note::Bpm(MaterializedBpm {
                     ts: self.curr_ts,
                     bpm: params.new_bpm,
-                })]
+                })
+                .with_span(insn.span())]
             }
             insn::RawInsn::BeatDivisor(params) => {
                 match params {
@@ -72,12 +73,16 @@ impl MaterializationContext {
             insn::RawInsn::Note(raw_note) => {
                 let ts = self.advance_time();
                 self.materialize_raw_note(ts, raw_note)
+                    .into_iter()
+                    .map(|note| note.with_span(insn.span()))
+                    .collect()
             }
             insn::RawInsn::NoteBundle(raw_notes) => {
                 let ts = self.advance_time();
                 raw_notes
                     .iter()
                     .flat_map(|raw_note| self.materialize_raw_note(ts, raw_note))
+                    .map(|note| note.with_span(insn.span()))
                     .collect()
             }
         }
