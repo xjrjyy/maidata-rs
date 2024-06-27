@@ -201,12 +201,6 @@ pub enum SlideSegmentShape {
     Spread,
 }
 
-impl From<SlideSegment> for SlideSegmentShape {
-    fn from(x: SlideSegment) -> Self {
-        x.shape()
-    }
-}
-
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Debug)]
 pub struct SlideSegmentParams {
     pub destination: Key,

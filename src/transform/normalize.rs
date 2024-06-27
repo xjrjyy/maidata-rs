@@ -5,6 +5,8 @@ use crate::transform::{
     NormalizedTapParams, NormalizedTouchHoldParams, NormalizedTouchParams,
 };
 
+use super::NormalizedSlideSegmentShape;
+
 fn key_clockwise_distance(start: Key, end: Key) -> u8 {
     (end.index() + 8 - start.index()) % 8
 }
@@ -44,44 +46,40 @@ pub fn normalize_slide_segment(
     segment: &SlideSegment,
 ) -> Option<NormalizedSlideSegment> {
     let distance = key_clockwise_distance(start, segment.params().destination);
-    let normalized_params = NormalizedSlideSegmentParams {
-        start,
-        destination: segment.params().destination,
-    };
-    match segment {
+    let shape = match segment {
         SlideSegment::Line(_) => match distance {
-            2..=6 => Some(NormalizedSlideSegment::Straight(normalized_params)),
+            2..=6 => Some(NormalizedSlideSegmentShape::Straight),
             _ => None,
         },
         SlideSegment::Arc(_)
         | SlideSegment::CircumferenceLeft(_)
         | SlideSegment::CircumferenceRight(_) => match slide_segment_is_clockwise(start, segment) {
-            Some(false) => Some(NormalizedSlideSegment::CircleL(normalized_params)),
-            Some(true) => Some(NormalizedSlideSegment::CircleR(normalized_params)),
+            Some(false) => Some(NormalizedSlideSegmentShape::CircleL),
+            Some(true) => Some(NormalizedSlideSegmentShape::CircleR),
             None => None,
         },
-        SlideSegment::P(_) => Some(NormalizedSlideSegment::CurveL(normalized_params)),
-        SlideSegment::Q(_) => Some(NormalizedSlideSegment::CurveR(normalized_params)),
+        SlideSegment::P(_) => Some(NormalizedSlideSegmentShape::CurveL),
+        SlideSegment::Q(_) => Some(NormalizedSlideSegmentShape::CurveR),
         SlideSegment::S(_) => match distance {
-            4 => Some(NormalizedSlideSegment::ThunderL(normalized_params)),
+            4 => Some(NormalizedSlideSegmentShape::ThunderL),
             _ => None,
         },
         SlideSegment::Z(_) => match distance {
-            4 => Some(NormalizedSlideSegment::ThunderR(normalized_params)),
+            4 => Some(NormalizedSlideSegmentShape::ThunderR),
             _ => None,
         },
         SlideSegment::V(_) => match distance {
             0 | 4 => None,
-            _ => Some(NormalizedSlideSegment::Corner(normalized_params)),
+            _ => Some(NormalizedSlideSegmentShape::Corner),
         },
-        SlideSegment::Qq(_) => Some(NormalizedSlideSegment::BendL(normalized_params)),
-        SlideSegment::Pp(_) => Some(NormalizedSlideSegment::BendR(normalized_params)),
+        SlideSegment::Qq(_) => Some(NormalizedSlideSegmentShape::BendL),
+        SlideSegment::Pp(_) => Some(NormalizedSlideSegmentShape::BendR),
         SlideSegment::Angle(params) => {
             match key_clockwise_distance(params.interim.unwrap(), params.destination) {
                 2..=6 => match start != params.destination {
                     true => match key_clockwise_distance(start, params.interim.unwrap()) {
-                        6 => Some(NormalizedSlideSegment::SkipL(normalized_params)),
-                        2 => Some(NormalizedSlideSegment::SkipR(normalized_params)),
+                        6 => Some(NormalizedSlideSegmentShape::SkipL),
+                        2 => Some(NormalizedSlideSegmentShape::SkipR),
                         _ => None,
                     },
                     false => None,
@@ -90,10 +88,20 @@ pub fn normalize_slide_segment(
             }
         }
         SlideSegment::Spread(_) => match distance {
-            4 => Some(NormalizedSlideSegment::Fan(normalized_params)),
+            4 => Some(NormalizedSlideSegmentShape::Fan),
             _ => None,
         },
-    }
+    };
+
+    shape.map(|shape| {
+        NormalizedSlideSegment::new(
+            shape,
+            NormalizedSlideSegmentParams {
+                start,
+                destination: segment.params().destination,
+            },
+        )
+    })
 }
 
 pub fn normalize_slide_segment_group(
@@ -181,11 +189,14 @@ mod tests {
             };
         }
         macro_rules! normalized_segment {
-            ($variant: ident, $start: expr, $end: expr) => {
-                NormalizedSlideSegment::$variant(NormalizedSlideSegmentParams {
-                    start: keys[$start],
-                    destination: keys[$end],
-                })
+            ($shape: ident, $start: expr, $end: expr) => {
+                NormalizedSlideSegment::new(
+                    NormalizedSlideSegmentShape::$shape,
+                    NormalizedSlideSegmentParams {
+                        start: keys[$start],
+                        destination: keys[$end],
+                    },
+                )
             };
         }
         macro_rules! normalize {
@@ -247,51 +258,46 @@ mod tests {
             destination: keys[6],
             interim: Some(keys[2]),
         });
-        let expected = NormalizedSlideSegment::SkipR(NormalizedSlideSegmentParams {
-            start: keys[0],
-            destination: keys[6],
-        });
-        assert_eq!(normalize_slide_segment(keys[0], &segment), Some(expected));
+        assert_eq!(
+            normalize_slide_segment(keys[0], &segment),
+            Some(normalized_segment!(SkipR, 0, 6))
+        );
 
         let segment = SlideSegment::Angle(SlideSegmentParams {
             destination: keys[3],
             interim: Some(keys[6]),
         });
-        let expected = NormalizedSlideSegment::SkipL(NormalizedSlideSegmentParams {
-            start: keys[0],
-            destination: keys[3],
-        });
-        assert_eq!(normalize_slide_segment(keys[0], &segment), Some(expected));
+        assert_eq!(
+            normalize_slide_segment(keys[0], &segment),
+            Some(normalized_segment!(SkipL, 0, 3))
+        );
 
         let segment = SlideSegment::Angle(SlideSegmentParams {
             destination: keys[3],
             interim: Some(keys[5]),
         });
-        let expected = NormalizedSlideSegment::SkipL(NormalizedSlideSegmentParams {
-            start: keys[7],
-            destination: keys[3],
-        });
-        assert_eq!(normalize_slide_segment(keys[7], &segment), Some(expected));
+        assert_eq!(
+            normalize_slide_segment(keys[7], &segment),
+            Some(normalized_segment!(SkipL, 7, 3))
+        );
 
         let segment = SlideSegment::Angle(SlideSegmentParams {
             destination: keys[2],
             interim: Some(keys[0]),
         });
-        let expected = NormalizedSlideSegment::SkipR(NormalizedSlideSegmentParams {
-            start: keys[6],
-            destination: keys[2],
-        });
-        assert_eq!(normalize_slide_segment(keys[6], &segment), Some(expected));
+        assert_eq!(
+            normalize_slide_segment(keys[6], &segment),
+            Some(normalized_segment!(SkipR, 6, 2))
+        );
 
         let segment = SlideSegment::Angle(SlideSegmentParams {
             destination: keys[1],
             interim: Some(keys[6]),
         });
-        let expected = NormalizedSlideSegment::SkipL(NormalizedSlideSegmentParams {
-            start: keys[0],
-            destination: keys[1],
-        });
-        assert_eq!(normalize_slide_segment(keys[0], &segment), Some(expected));
+        assert_eq!(
+            normalize_slide_segment(keys[0], &segment),
+            Some(normalized_segment!(SkipL, 0, 1))
+        );
 
         let segment = SlideSegment::Angle(SlideSegmentParams {
             destination: keys[4],

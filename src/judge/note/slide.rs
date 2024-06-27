@@ -206,29 +206,11 @@ impl JudgeNote for Slide {
 fn materialized_to_normalized_slide_segment(
     segment: &MaterializedSlideSegment,
 ) -> NormalizedSlideSegment {
-    let normalized_params = NormalizedSlideSegmentParams {
-        start: segment.start,
-        destination: segment.destination,
-    };
-    match segment.shape {
-        NormalizedSlideSegmentShape::Straight => {
-            NormalizedSlideSegment::Straight(normalized_params)
-        }
-        NormalizedSlideSegmentShape::CircleL => NormalizedSlideSegment::CircleL(normalized_params),
-        NormalizedSlideSegmentShape::CircleR => NormalizedSlideSegment::CircleR(normalized_params),
-        NormalizedSlideSegmentShape::CurveL => NormalizedSlideSegment::CurveL(normalized_params),
-        NormalizedSlideSegmentShape::CurveR => NormalizedSlideSegment::CurveR(normalized_params),
-        NormalizedSlideSegmentShape::ThunderL => {
-            NormalizedSlideSegment::ThunderL(normalized_params)
-        }
-        NormalizedSlideSegmentShape::ThunderR => {
-            NormalizedSlideSegment::ThunderR(normalized_params)
-        }
-        NormalizedSlideSegmentShape::Corner => NormalizedSlideSegment::Corner(normalized_params),
-        NormalizedSlideSegmentShape::BendL => NormalizedSlideSegment::BendL(normalized_params),
-        NormalizedSlideSegmentShape::BendR => NormalizedSlideSegment::BendR(normalized_params),
-        NormalizedSlideSegmentShape::SkipL => NormalizedSlideSegment::SkipL(normalized_params),
-        NormalizedSlideSegmentShape::SkipR => NormalizedSlideSegment::SkipR(normalized_params),
-        NormalizedSlideSegmentShape::Fan => NormalizedSlideSegment::Fan(normalized_params),
-    }
+    NormalizedSlideSegment::new(
+        segment.shape,
+        NormalizedSlideSegmentParams {
+            start: segment.start,
+            destination: segment.destination,
+        },
+    )
 }
