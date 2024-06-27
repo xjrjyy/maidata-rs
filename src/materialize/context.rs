@@ -6,8 +6,7 @@ use crate::materialize::{
     MaterializedSlideTrack, MaterializedTap, MaterializedTapShape, MaterializedTouch,
     MaterializedTouchHold,
 };
-use crate::transform;
-use crate::{insn, Sp, WithSpan};
+use crate::{insn, transform, Sp, WithSpan};
 
 pub struct MaterializationContext {
     // TODO: is slides' default stop time really independent of BPM changes?

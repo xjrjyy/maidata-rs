@@ -16,7 +16,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut mcx = maidata::materialize::MaterializationContext::with_offset(offset);
     let notes = mcx.materialize_insns(insns.iter());
 
-    let messages_to_value = |messages: &[maidata::ParseMessage]| -> serde_json::Value {
+    let messages_to_value = |messages: &[maidata::Message]| -> serde_json::Value {
         messages
             .iter()
             .map(|msg| {

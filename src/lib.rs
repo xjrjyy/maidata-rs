@@ -49,3 +49,44 @@ impl std::fmt::Display for Level {
         Ok(())
     }
 }
+
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct Message {
+    pub span: Span,
+    // TODO: enum for error/warning?
+    pub message: String,
+}
+
+impl std::fmt::Display for Message {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}: {}", self.span, self.message)
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct State {
+    pub warnings: Vec<Message>,
+    pub errors: Vec<Message>,
+}
+
+impl State {
+    pub fn add_warning(&mut self, span: Span, message: String) {
+        self.warnings.push(Message { span, message });
+    }
+
+    pub fn add_error(&mut self, span: Span, message: String) {
+        self.errors.push(Message { span, message });
+    }
+
+    pub fn has_warnings(&self) -> bool {
+        !self.warnings.is_empty()
+    }
+
+    pub fn has_errors(&self) -> bool {
+        !self.errors.is_empty()
+    }
+
+    pub fn has_messages(&self) -> bool {
+        self.has_warnings() || self.has_errors()
+    }
+}

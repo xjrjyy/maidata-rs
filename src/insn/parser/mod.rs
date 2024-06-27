@@ -222,7 +222,7 @@ fn t_rest(s: NomSpan) -> PResult<Option<SpRawInsn>> {
 
 #[cfg(test)]
 mod tests {
-    use crate::ParseState;
+    use crate::State;
 
     use super::*;
     use std::error::Error;
@@ -232,7 +232,7 @@ mod tests {
         start: &str,
         rest: &str,
     ) -> T {
-        let state = std::cell::RefCell::new(crate::ParseState::default());
+        let state = std::cell::RefCell::new(crate::State::default());
         let start = start.to_owned() + rest;
         let s = NomSpan::new_extra(&start, &state);
         let (s, result) = parser(s).expect("parser cannot fail");
@@ -242,11 +242,8 @@ mod tests {
         result
     }
 
-    pub fn test_parser_err<T>(
-        parser: impl Fn(NomSpan<'_>) -> PResult<T>,
-        start: &str,
-    ) -> ParseState {
-        let state = std::cell::RefCell::new(crate::ParseState::default());
+    pub fn test_parser_err<T>(parser: impl Fn(NomSpan<'_>) -> PResult<T>, start: &str) -> State {
+        let state = std::cell::RefCell::new(crate::State::default());
         let s = NomSpan::new_extra(start, &state);
         let result = parser(s);
         // TODO: split
@@ -254,11 +251,8 @@ mod tests {
         state.into_inner()
     }
 
-    pub fn test_parser_warn<T>(
-        parser: impl Fn(NomSpan<'_>) -> PResult<T>,
-        start: &str,
-    ) -> ParseState {
-        let state = std::cell::RefCell::new(crate::ParseState::default());
+    pub fn test_parser_warn<T>(parser: impl Fn(NomSpan<'_>) -> PResult<T>, start: &str) -> State {
+        let state = std::cell::RefCell::new(crate::State::default());
         let s = NomSpan::new_extra(start, &state);
         parser(s).unwrap();
         // TODO: split

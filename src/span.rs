@@ -1,51 +1,11 @@
+use crate::State;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 
-pub type NomSpan<'a> = nom_locate::LocatedSpan<&'a str, &'a RefCell<ParseState>>;
+pub type NomSpan<'a> = nom_locate::LocatedSpan<&'a str, &'a RefCell<State>>;
 
 /// Convenient alias for parsing result with spans.
 pub type PResult<'a, T> = nom::IResult<NomSpan<'a>, T>;
-
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct ParseMessage {
-    pub span: Span,
-    // TODO: enum for error/warning?
-    pub message: String,
-}
-
-impl std::fmt::Display for ParseMessage {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}: {}", self.span, self.message)
-    }
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct ParseState {
-    pub warnings: Vec<ParseMessage>,
-    pub errors: Vec<ParseMessage>,
-}
-
-impl ParseState {
-    pub fn add_warning(&mut self, span: Span, message: String) {
-        self.warnings.push(ParseMessage { span, message });
-    }
-
-    pub fn add_error(&mut self, span: Span, message: String) {
-        self.errors.push(ParseMessage { span, message });
-    }
-
-    pub fn has_warnings(&self) -> bool {
-        !self.warnings.is_empty()
-    }
-
-    pub fn has_errors(&self) -> bool {
-        !self.errors.is_empty()
-    }
-
-    pub fn has_messages(&self) -> bool {
-        self.has_warnings() || self.has_errors()
-    }
-}
 
 pub fn expect<'a, F, E, T>(
     mut parser: F,
