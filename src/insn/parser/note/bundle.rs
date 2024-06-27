@@ -40,12 +40,5 @@ pub fn t_bundle(s: NomSpan) -> PResult<Option<SpRawInsn>> {
 
     let span = (start_loc, end_loc);
     // TODO: check len before flattening?
-    if notes.len() == 1 {
-        Ok((
-            s,
-            Some(RawInsn::Note(notes.into_iter().next().unwrap()).with_span(span)),
-        ))
-    } else {
-        Ok((s, Some(RawInsn::NoteBundle(notes).with_span(span))))
-    }
+    Ok((s, Some(RawInsn::Notes(notes).with_span(span))))
 }

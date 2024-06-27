@@ -97,7 +97,7 @@ pub fn t_tap_multi_simplified(s: NomSpan) -> PResult<Option<SpRawInsn>> {
     let (s, end_loc) = nom_locate::position(s)?;
 
     let span = (start_loc, end_loc);
-    Ok((s, Some(RawInsn::NoteBundle(notes).with_span(span))))
+    Ok((s, Some(RawInsn::Notes(notes).with_span(span))))
 }
 
 #[cfg(test)]

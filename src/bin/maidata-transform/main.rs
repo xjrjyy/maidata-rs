@@ -117,8 +117,7 @@ where
             let notes: Vec<_> = diff
                 .iter_insns()
                 .filter_map(|insn| match insn.deref() {
-                    RawInsn::Note(insn) => Some(vec![normalize_note(insn.deref()).unwrap()]),
-                    RawInsn::NoteBundle(insn) => {
+                    RawInsn::Notes(insn) => {
                         let mut result: Vec<_> = insn
                             .deref()
                             .iter()

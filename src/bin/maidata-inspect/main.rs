@@ -6,8 +6,7 @@ fn print_raw_insn(insn: &RawInsn) {
         RawInsn::Bpm(params) => print!("({})", params),
         RawInsn::BeatDivisor(params) => print!("{{{}}}", params),
         RawInsn::Rest => print!(","),
-        RawInsn::Note(note) => print!("{},", note.deref()),
-        RawInsn::NoteBundle(note_bundle) => print!(
+        RawInsn::Notes(note_bundle) => print!(
             "{},",
             note_bundle
                 .iter()

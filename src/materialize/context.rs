@@ -70,14 +70,7 @@ impl MaterializationContext {
                 // TODO: make later materialize calls return error?
                 vec![]
             }
-            insn::RawInsn::Note(raw_note) => {
-                let ts = self.advance_time();
-                self.materialize_raw_note(ts, raw_note)
-                    .into_iter()
-                    .map(|note| note.with_span(insn.span()))
-                    .collect()
-            }
-            insn::RawInsn::NoteBundle(raw_notes) => {
+            insn::RawInsn::Notes(raw_notes) => {
                 let ts = self.advance_time();
                 raw_notes
                     .iter()

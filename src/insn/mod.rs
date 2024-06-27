@@ -32,8 +32,7 @@ pub enum RawInsn {
     Bpm(BpmParams),
     BeatDivisor(BeatDivisorParams),
     Rest,
-    Note(SpRawNoteInsn),
-    NoteBundle(crate::VecSp<RawNoteInsn>),
+    Notes(crate::VecSp<RawNoteInsn>),
     EndMark,
 }
 
