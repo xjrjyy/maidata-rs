@@ -45,9 +45,13 @@ pub struct MaterializedTap {
 
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Serialize, Deserialize)]
 pub enum MaterializedTapShape {
+    #[serde(rename = "ring")]
     Ring,
+    #[serde(rename = "star")]
     Star,
+    #[serde(rename = "star_spin")]
     StarSpin,
+    #[serde(rename = "invalid")]
     Invalid,
 }
 
