@@ -213,7 +213,14 @@ pub fn t_slide_segment_group(
     ))
 }
 
-pub fn t_slide_track(s: NomSpan) -> PResult<Option<SlideTrack>> {
+pub fn validate_slide_track(start_key: Key, track: &SlideTrack) -> bool {
+    use crate::transform::normalize::normalize_slide_track;
+
+    // TODO: split
+    normalize_slide_track(start_key, track).is_some()
+}
+
+pub fn t_slide_track(s: NomSpan, start_key: Option<Key>) -> PResult<Option<SlideTrack>> {
     // TODO: track with different speed
     let (s, start_loc) = nom_locate::position(s)?;
     let (s, groups) = ws_list1(t_slide_segment_group)(s)?;
@@ -231,24 +238,34 @@ pub fn t_slide_track(s: NomSpan) -> PResult<Option<SlideTrack>> {
             acc.is_break |= x.is_break;
             acc
         });
+    let groups = groups
+        .into_iter()
+        .flat_map(|(group, _)| group)
+        .collect::<Vec<_>>();
     if groups.is_empty() {
         return Ok((s, None));
     }
 
-    Ok((
-        s,
-        Some(SlideTrack {
-            groups: groups.into_iter().flat_map(|(group, _)| group).collect(),
-            modifier,
-        }),
-    ))
+    let track = SlideTrack { groups, modifier };
+
+    if let Some(start_key) = start_key {
+        if !validate_slide_track(start_key, &track) {
+            s.extra.borrow_mut().add_error(
+                (start_loc, end_loc).into(),
+                "invalid slide track instruction".to_string(),
+            );
+            return Ok((s, None));
+        }
+    }
+
+    Ok((s, Some(track)))
 }
 
-pub fn t_slide_sep_track(s: NomSpan) -> PResult<Option<SlideTrack>> {
+pub fn t_slide_sep_track(s: NomSpan, start_key: Option<Key>) -> PResult<Option<SlideTrack>> {
     use nom::character::complete::char;
 
     let (s, _) = char('*')(s)?;
-    let (s, track) = ws(t_slide_track).expect("expected slide track")(s)?;
+    let (s, track) = ws(move |s| t_slide_track(s, start_key)).expect("expected slide track")(s)?;
 
     Ok((s, track.flatten()))
 }
@@ -271,8 +288,8 @@ pub fn t_slide(s: NomSpan) -> PResult<Option<SpRawNoteInsn>> {
     let (s, start_loc) = nom_locate::position(s)?;
     let (s, start_key) = ws(opt(t_key))(s)?;
     let (s, start_modifier_str) = t_slide_head_modifier_str(s)?;
-    let (s, first_track) = ws(t_slide_track)(s)?;
-    let (s, rest_track) = many0(ws(t_slide_sep_track))(s)?;
+    let (s, first_track) = ws(move |s| t_slide_track(s, start_key))(s)?;
+    let (s, rest_track) = many0(move |s| t_slide_sep_track(s, start_key))(s)?;
     let (s, end_loc) = nom_locate::position(s)?;
 
     if start_key.is_none() {
