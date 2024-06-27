@@ -72,9 +72,18 @@ impl MaterializationContext {
             }
             insn::RawInsn::Notes(raw_notes) => {
                 let ts = self.advance_time();
+                let is_each = raw_notes.len() > 1;
+                let is_slide_each = raw_notes.iter().fold(0, |acc, x| {
+                    acc + match x.deref() {
+                        insn::RawNoteInsn::Slide(params) => params.tracks.len(),
+                        _ => 0,
+                    }
+                }) > 1;
                 raw_notes
                     .iter()
-                    .flat_map(|raw_note| self.materialize_raw_note(ts, raw_note))
+                    .flat_map(|raw_note| {
+                        self.materialize_raw_note(ts, raw_note, is_each, is_slide_each)
+                    })
                     .map(|note| note.with_span(insn.span()))
                     .collect()
             }
@@ -97,23 +106,32 @@ impl MaterializationContext {
         res
     }
 
-    fn materialize_raw_note(&self, ts: f64, raw_note: &insn::RawNoteInsn) -> Vec<Note> {
+    fn materialize_raw_note(
+        &self,
+        ts: f64,
+        raw_note: &insn::RawNoteInsn,
+        is_each: bool,
+        is_slide_each: bool,
+    ) -> Vec<Note> {
         match raw_note {
             insn::RawNoteInsn::Tap(params) => {
-                let m_params = materialize_tap_params(ts, params, false);
+                let m_params = materialize_tap_params(ts, params, false, is_each);
                 vec![Note::Tap(m_params)]
             }
             insn::RawNoteInsn::Touch(params) => {
-                let m_params = materialize_touch_params(ts, params);
+                let m_params = materialize_touch_params(ts, params, is_each);
                 vec![Note::Touch(m_params)]
             }
-            insn::RawNoteInsn::Slide(params) => materialize_slide(ts, self.curr_beat_dur, params),
+            insn::RawNoteInsn::Slide(params) => {
+                materialize_slide(ts, self.curr_beat_dur, params, is_each, is_slide_each)
+            }
             insn::RawNoteInsn::Hold(params) => {
-                let m_params = materialize_hold_params(ts, self.curr_beat_dur, params);
+                let m_params = materialize_hold_params(ts, self.curr_beat_dur, params, is_each);
                 vec![Note::Hold(m_params)]
             }
             insn::RawNoteInsn::TouchHold(params) => {
-                let m_params = materialize_touch_hold_params(ts, self.curr_beat_dur, params);
+                let m_params =
+                    materialize_touch_hold_params(ts, self.curr_beat_dur, params, is_each);
                 vec![Note::TouchHold(m_params)]
             }
         }
@@ -128,7 +146,12 @@ fn divide_beat(beat_dur: f64, beat_divisor: u32) -> f64 {
     beat_dur * 4.0 / (beat_divisor as f64)
 }
 
-fn materialize_tap_params(ts: f64, p: &insn::TapParams, is_slide_star: bool) -> MaterializedTap {
+fn materialize_tap_params(
+    ts: f64,
+    p: &insn::TapParams,
+    is_slide_star: bool,
+    is_each: bool,
+) -> MaterializedTap {
     let shape = match p.modifier.shape {
         Some(insn::TapShape::Ring) => MaterializedTapShape::Ring,
         Some(insn::TapShape::Star) => MaterializedTapShape::Star,
@@ -150,26 +173,39 @@ fn materialize_tap_params(ts: f64, p: &insn::TapParams, is_slide_star: bool) -> 
         shape,
         is_break: p.modifier.is_break,
         is_ex: p.modifier.is_ex,
+        is_each,
     }
 }
 
-fn materialize_touch_params(ts: f64, p: &insn::TouchParams) -> MaterializedTouch {
+fn materialize_touch_params(ts: f64, p: &insn::TouchParams, is_each: bool) -> MaterializedTouch {
     MaterializedTouch {
         ts,
         sensor: p.sensor,
+        is_each,
     }
 }
 
 /// slide insn -> `vec![star tap, track, track, ...]`
-fn materialize_slide(ts: f64, beat_dur: f64, p: &insn::SlideParams) -> Vec<Note> {
+fn materialize_slide(
+    ts: f64,
+    beat_dur: f64,
+    p: &insn::SlideParams,
+    is_each: bool,
+    is_slide_each: bool,
+) -> Vec<Note> {
     // star
-    let star = Note::Tap(materialize_tap_params(ts, &p.start, true));
+    let star = Note::Tap(materialize_tap_params(ts, &p.start, true, is_each));
     let start_key = p.start.key;
 
-    let tracks = p
-        .tracks
-        .iter()
-        .map(|track| Note::SlideTrack(materialize_slide_track(ts, beat_dur, start_key, track)));
+    let tracks = p.tracks.iter().map(|track| {
+        Note::SlideTrack(materialize_slide_track(
+            ts,
+            beat_dur,
+            start_key,
+            track,
+            is_slide_each,
+        ))
+    });
 
     let mut result = Vec::with_capacity(tracks.len() + 1);
     result.push(star);
@@ -182,6 +218,7 @@ fn materialize_slide_track(
     beat_dur: f64,
     start_key: insn::Key,
     track: &insn::SlideTrack,
+    is_each: bool,
 ) -> MaterializedSlideTrack {
     // in simai, stop time is actually encoded (overridden) in the duration spec of individual
     // slide track
@@ -215,6 +252,7 @@ fn materialize_slide_track(
         groups,
         is_break: track.modifier.is_break,
         is_sudden: track.modifier.is_sudden,
+        is_each,
     }
 }
 
@@ -257,13 +295,19 @@ fn materialize_slide_segment(
     }
 }
 
-fn materialize_hold_params(ts: f64, beat_dur: f64, p: &insn::HoldParams) -> MaterializedHold {
+fn materialize_hold_params(
+    ts: f64,
+    beat_dur: f64,
+    p: &insn::HoldParams,
+    is_each: bool,
+) -> MaterializedHold {
     MaterializedHold {
         ts,
         dur: materialize_duration(p.dur, beat_dur),
         key: p.key,
         is_break: p.modifier.is_break,
         is_ex: p.modifier.is_ex,
+        is_each,
     }
 }
 
@@ -271,11 +315,13 @@ fn materialize_touch_hold_params(
     ts: f64,
     beat_dur: f64,
     p: &insn::TouchHoldParams,
+    is_each: bool,
 ) -> MaterializedTouchHold {
     MaterializedTouchHold {
         ts,
         dur: materialize_duration(p.dur, beat_dur),
         sensor: p.sensor,
+        is_each,
     }
 }
 

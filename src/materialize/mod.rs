@@ -40,6 +40,7 @@ pub struct MaterializedTap {
     pub shape: MaterializedTapShape,
     pub is_break: bool,
     pub is_ex: bool,
+    pub is_each: bool,
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Serialize, Deserialize)]
@@ -54,6 +55,7 @@ pub enum MaterializedTapShape {
 pub struct MaterializedTouch {
     pub ts: TimestampInSeconds,
     pub sensor: TouchSensor,
+    pub is_each: bool,
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
@@ -63,6 +65,7 @@ pub struct MaterializedHold {
     pub key: Key,
     pub is_break: bool,
     pub is_ex: bool,
+    pub is_each: bool,
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
@@ -70,6 +73,7 @@ pub struct MaterializedTouchHold {
     pub ts: TimestampInSeconds,
     pub dur: DurationInSeconds,
     pub sensor: TouchSensor,
+    pub is_each: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -79,6 +83,7 @@ pub struct MaterializedSlideTrack {
     pub groups: Vec<MaterializedSlideSegmentGroup>,
     pub is_break: bool,
     pub is_sudden: bool,
+    pub is_each: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
