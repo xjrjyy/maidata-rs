@@ -1,4 +1,4 @@
 pub mod note;
 pub mod simulator;
 mod slide_data;
-pub mod slide_path;
+pub mod slide_data_getter;

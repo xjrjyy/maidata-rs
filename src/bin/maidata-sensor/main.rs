@@ -81,7 +81,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 use maidata::insn::{Key, TouchSensor};
-use maidata::judge::slide_path::SLIDE_PATH_GETTER;
+use maidata::judge::slide_data_getter::SLIDE_DATA_GETTER;
 use maidata::materialize::{DurationInSeconds, Note as MaterializedNote, TimestampInSeconds};
 use maidata::transform::transform::{Transformable, Transformer};
 use maidata::transform::{
@@ -188,8 +188,8 @@ fn parse_maidata(diff: &AssociatedBeatmapData) -> Option<Vec<Vec<Note>>> {
                             )
                         })
                         .flat_map(|segment| {
-                            SLIDE_PATH_GETTER
-                                .get(&NormalizedSlideTrack {
+                            SLIDE_DATA_GETTER
+                                .get_path(&NormalizedSlideTrack {
                                     groups: vec![NormalizedSlideSegmentGroup {
                                         segments: vec![segment],
                                     }],
@@ -213,8 +213,8 @@ fn parse_maidata(diff: &AssociatedBeatmapData) -> Option<Vec<Vec<Note>>> {
                             NormalizedSlideSegmentGroup { segments }
                         })
                         .collect();
-                    SLIDE_PATH_GETTER
-                        .get(&NormalizedSlideTrack { groups })
+                    SLIDE_DATA_GETTER
+                        .get_path(&NormalizedSlideTrack { groups })
                         .into_iter()
                         .flatten()
                         .flatten()

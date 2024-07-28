@@ -1,4 +1,4 @@
-use super::super::slide_path::SLIDE_PATH_GETTER;
+use super::super::slide_data_getter::SLIDE_DATA_GETTER;
 use super::{JudgeNote, JudgeType, Timing, TouchSensorStates, JUDGE_DATA};
 use crate::insn::TouchSensor;
 use crate::materialize::{MaterializedSlideSegment, MaterializedSlideTrack};
@@ -62,8 +62,8 @@ impl TryFrom<MaterializedSlideTrack> for Slide {
             % 8;
 
         Ok(Self {
-            path: SLIDE_PATH_GETTER
-                .get(&normalized_track)
+            path: SLIDE_DATA_GETTER
+                .get_path(&normalized_track)
                 .ok_or("Slide path not found")?,
             appear_time: m.ts,
             tail_time: m.start_ts + dur,
@@ -87,8 +87,8 @@ impl Slide {
         assert!(segment.shape == NormalizedSlideSegmentShape::Fan);
         let dur = parent.groups.iter().map(|group| group.dur).sum::<f64>();
         Ok(Self {
-            path: SLIDE_PATH_GETTER
-                .get_by_segment(&materialized_to_normalized_slide_segment(segment))
+            path: SLIDE_DATA_GETTER
+                .get_path_by_segment(&materialized_to_normalized_slide_segment(segment))
                 .ok_or("Slide path not found")?,
             appear_time: parent.ts,
             tail_time: parent.start_ts + dur,

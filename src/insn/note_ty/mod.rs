@@ -133,6 +133,10 @@ impl TouchSensor {
         Err(TouchSensorParseError::InvalidTouchSensor(group, index))
     }
 
+    pub const fn new_unchecked(group: char, index: Option<u8>) -> Self {
+        TouchSensor { group, index }
+    }
+
     pub fn group(&self) -> char {
         self.group
     }
