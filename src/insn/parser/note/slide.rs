@@ -232,20 +232,31 @@ pub fn t_slide_track(s: NomSpan, start_key: Option<Key>) -> PResult<Option<Slide
         });
     if groups.len() > 1 {
         // TODO: message
-        s.extra.borrow_mut().add_error(
+        s.extra.borrow_mut().add_warning(
             (start_loc, end_loc).into(),
             "multiple slide track groups are not supported".to_string(),
         );
     }
-    // TODO: merge dur
     let dur = groups.iter().fold(None, |acc, (_, dur, _)| {
-        if acc.is_some() && dur.is_some() {
-            s.extra.borrow_mut().add_error(
-                (start_loc, end_loc).into(),
-                "duplicate slide duration in slide track instruction".to_string(),
-            );
+        if let Some(acc) = acc {
+            if let Some(dur) = dur {
+                let result: Option<SlideDuration> = acc + *dur;
+                if result.is_none() {
+                    s.extra.borrow_mut().add_error(
+                        (start_loc, end_loc).into(),
+                        format!(
+                            "inconsistent slide duration in slide track instruction: {} + {}",
+                            acc, dur
+                        ),
+                    );
+                }
+                result
+            } else {
+                Some(acc)
+            }
+        } else {
+            *dur
         }
-        dur.or(acc)
     });
     let segments = groups
         .into_iter()
@@ -257,7 +268,7 @@ pub fn t_slide_track(s: NomSpan, start_key: Option<Key>) -> PResult<Option<Slide
 
     let track = SlideTrack {
         segments,
-        dur: dur.unwrap_or(SlideDuration::Simple(Duration::Seconds(1.0))),
+        dur: dur.unwrap(),
         modifier,
     };
 

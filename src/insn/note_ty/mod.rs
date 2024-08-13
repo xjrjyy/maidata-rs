@@ -188,6 +188,38 @@ impl Duration {
     }
 }
 
+impl std::ops::Add<Duration> for Duration {
+    type Output = Option<Duration>;
+
+    fn add(self, rhs: Duration) -> Self::Output {
+        match (self, rhs) {
+            (Self::NumBeats(lhs), Self::NumBeats(rhs)) => {
+                if lhs.bpm.is_some() && rhs.bpm.is_some() && lhs.bpm != rhs.bpm {
+                    return None;
+                }
+                let gcd = |mut a: u32, mut b: u32| {
+                    while b != 0 {
+                        let t = b;
+                        b = a % b;
+                        a = t;
+                    }
+                    a
+                };
+                let divisor = lhs.divisor / gcd(lhs.divisor, rhs.divisor) * rhs.divisor;
+                let num = lhs.num * (divisor / lhs.divisor) + rhs.num * (divisor / rhs.divisor);
+                let gcd = gcd(num, divisor);
+                Some(Self::NumBeats(NumBeatsParams {
+                    bpm: lhs.bpm.or(rhs.bpm),
+                    divisor: divisor / gcd,
+                    num: num / gcd,
+                }))
+            }
+            (Self::Seconds(lhs), Self::Seconds(rhs)) => Some(Self::Seconds(lhs + rhs)),
+            _ => None,
+        }
+    }
+}
+
 impl std::fmt::Display for Duration {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {

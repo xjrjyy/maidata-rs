@@ -12,8 +12,64 @@ pub enum SlideDuration {
     Custom(SlideStopTimeSpec, Duration),
 }
 
+impl SlideDuration {
+    pub fn valid(&self) -> bool {
+        match self {
+            SlideDuration::Simple(_) => true,
+            SlideDuration::Custom(spec, dur) => match spec {
+                SlideStopTimeSpec::Bpm(_) => matches!(dur, Duration::Seconds(_)),
+                SlideStopTimeSpec::Seconds(_) => true,
+            },
+        }
+    }
+}
+
+impl std::ops::Add<SlideDuration> for SlideDuration {
+    type Output = Option<SlideDuration>;
+
+    fn add(self, rhs: SlideDuration) -> Self::Output {
+        match (self, rhs) {
+            (SlideDuration::Simple(lhs), SlideDuration::Simple(rhs)) => {
+                (lhs + rhs).map(SlideDuration::Simple)
+            }
+            (SlideDuration::Simple(lhs), SlideDuration::Custom(rhs_spec, rhs)) => {
+                let result = SlideDuration::Custom(rhs_spec, (lhs + rhs)?);
+                if result.valid() {
+                    Some(result)
+                } else {
+                    None
+                }
+            }
+            (SlideDuration::Custom(lhs_spec, lhs), SlideDuration::Simple(rhs)) => {
+                let result = SlideDuration::Custom(lhs_spec, (lhs + rhs)?);
+                if result.valid() {
+                    Some(result)
+                } else {
+                    None
+                }
+            }
+            (SlideDuration::Custom(lhs_spec, lhs), SlideDuration::Custom(rhs_spec, rhs)) => {
+                // TODO: Check if this is correct
+                if lhs_spec != rhs_spec {
+                    return None;
+                }
+                let result = SlideDuration::Custom(lhs_spec, (lhs + rhs)?);
+                if result.valid() {
+                    Some(result)
+                } else {
+                    None
+                }
+            }
+        }
+    }
+}
+
 impl std::fmt::Display for SlideDuration {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if !self.valid() {
+            // panic!("Invalid slide duration spec: {:?} {:?}", spec, duration);
+            return Err(std::fmt::Error);
+        }
         match self {
             Self::Simple(duration) => write!(f, "{}", duration),
             Self::Custom(spec, duration) => match spec {
@@ -21,7 +77,7 @@ impl std::fmt::Display for SlideDuration {
                     if let Duration::Seconds(seconds) = duration {
                         write!(f, "{}#{}", bpm, seconds)
                     } else {
-                        panic!("Invalid slide duration spec: {:?} {:?}", spec, duration)
+                        unreachable!()
                     }
                 }
                 SlideStopTimeSpec::Seconds(seconds) => match duration {
