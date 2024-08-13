@@ -403,7 +403,11 @@ mod tests {
     fn test_t_slide_dur() -> Result<(), Box<dyn std::error::Error>> {
         assert_eq!(
             test_parser_ok(t_slide_dur, "[ 4 : 3 ]", " ,").unwrap(),
-            SlideDuration::Simple(Duration::NumBeats(NumBeatsParams { divisor: 4, num: 3 }))
+            SlideDuration::Simple(Duration::NumBeats(NumBeatsParams {
+                bpm: None,
+                divisor: 4,
+                num: 3
+            }))
         );
 
         assert_eq!(
@@ -413,8 +417,8 @@ mod tests {
 
         assert_eq!(
             test_parser_ok(t_slide_dur, "[ 120.0 #4: 1]", " ,").unwrap(),
-            SlideDuration::Simple(Duration::BpmNumBeats(BpmNumBeatsParams {
-                bpm: 120.0,
+            SlideDuration::Simple(Duration::NumBeats(NumBeatsParams {
+                bpm: Some(120.0),
                 divisor: 4,
                 num: 1
             }))
@@ -438,7 +442,11 @@ mod tests {
             test_parser_ok(t_slide_dur, "[ 3.0## 4 : 1 ]", " ,").unwrap(),
             SlideDuration::Custom(
                 SlideStopTimeSpec::Seconds(3.0),
-                Duration::NumBeats(NumBeatsParams { divisor: 4, num: 1 })
+                Duration::NumBeats(NumBeatsParams {
+                    bpm: None,
+                    divisor: 4,
+                    num: 1
+                })
             )
         );
         test_parser_err(t_slide_dur, "[3.0# #4:1]");
@@ -448,8 +456,8 @@ mod tests {
             test_parser_ok(t_slide_dur, "[ 3.0 ##160 #4 : 1 ]", " ,").unwrap(),
             SlideDuration::Custom(
                 SlideStopTimeSpec::Seconds(3.0),
-                Duration::BpmNumBeats(BpmNumBeatsParams {
-                    bpm: 160.0,
+                Duration::NumBeats(NumBeatsParams {
+                    bpm: Some(160.0),
                     divisor: 4,
                     num: 1
                 })

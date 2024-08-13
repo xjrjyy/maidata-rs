@@ -176,41 +176,39 @@ impl std::convert::TryFrom<(char, Option<u8>)> for TouchSensor {
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum Duration {
     NumBeats(NumBeatsParams),
-    BpmNumBeats(BpmNumBeatsParams),
     Seconds(f64),
+}
+
+impl Duration {
+    pub fn bpm(&self) -> Option<f64> {
+        match self {
+            Self::NumBeats(params) => params.bpm,
+            Self::Seconds(_) => None,
+        }
+    }
 }
 
 impl std::fmt::Display for Duration {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::NumBeats(params) => write!(f, "{}", params),
-            Self::BpmNumBeats(params) => write!(f, "{}", params),
             Self::Seconds(seconds) => write!(f, "#{}", seconds),
         }
     }
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub struct NumBeatsParams {
+    pub bpm: Option<f64>,
     pub divisor: u32,
     pub num: u32,
 }
 
 impl std::fmt::Display for NumBeatsParams {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Some(bpm) = self.bpm {
+            write!(f, "{}#", bpm)?;
+        }
         write!(f, "{}:{}", self.divisor, self.num)
-    }
-}
-
-#[derive(Copy, Clone, PartialEq, Debug)]
-pub struct BpmNumBeatsParams {
-    pub bpm: f64,
-    pub divisor: u32,
-    pub num: u32,
-}
-
-impl std::fmt::Display for BpmNumBeatsParams {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}#{}:{}", self.bpm, self.divisor, self.num)
     }
 }

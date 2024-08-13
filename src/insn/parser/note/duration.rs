@@ -15,7 +15,14 @@ pub fn t_dur_spec_num_beats(s: NomSpan) -> PResult<Option<Duration>> {
     let divisor = divisor_str.fragment().parse().unwrap();
     let num = num_str.unwrap().fragment().parse().unwrap();
 
-    Ok((s, Some(Duration::NumBeats(NumBeatsParams { divisor, num }))))
+    Ok((
+        s,
+        Some(Duration::NumBeats(NumBeatsParams {
+            bpm: None,
+            divisor,
+            num,
+        })),
+    ))
 }
 
 pub fn t_dur_spec_bpm_num_beats(s: NomSpan) -> PResult<Option<Duration>> {
@@ -25,19 +32,24 @@ pub fn t_dur_spec_bpm_num_beats(s: NomSpan) -> PResult<Option<Duration>> {
     let (s, bpm) = double(s)?;
     let (s, _) = ws(char('#'))(s)?;
     let (s, dur) = ws(t_dur_spec_num_beats)(s)?;
-    let (divisor, num) = match dur {
-        Some(Duration::NumBeats(NumBeatsParams { divisor, num })) => (divisor, num),
-        _ => return Ok((s, None)),
-    };
 
-    Ok((
-        s,
-        Some(Duration::BpmNumBeats(BpmNumBeatsParams {
-            bpm,
-            divisor,
-            num,
-        })),
-    ))
+    if let Some(Duration::NumBeats(NumBeatsParams {
+        bpm: _,
+        divisor,
+        num,
+    })) = dur
+    {
+        Ok((
+            s,
+            Some(Duration::NumBeats(NumBeatsParams {
+                bpm: Some(bpm),
+                divisor,
+                num,
+            })),
+        ))
+    } else {
+        Ok((s, None))
+    }
 }
 
 pub fn t_dur_spec_absolute(s: NomSpan) -> PResult<Option<Duration>> {
@@ -71,7 +83,11 @@ mod tests {
     fn test_t_dur() -> Result<(), Box<dyn std::error::Error>> {
         assert_eq!(
             test_parser_ok(t_dur, "[ 4 : 3 ]", " ,").unwrap(),
-            Duration::NumBeats(NumBeatsParams { divisor: 4, num: 3 })
+            Duration::NumBeats(NumBeatsParams {
+                bpm: None,
+                divisor: 4,
+                num: 3
+            })
         );
         test_parser_err(t_dur, " [4:3]");
         test_parser_err(t_dur, "[4.5:2]");
@@ -90,8 +106,8 @@ mod tests {
 
         assert_eq!(
             test_parser_ok(t_dur, "[ 120.0 #4: 1]", " ,").unwrap(),
-            Duration::BpmNumBeats(BpmNumBeatsParams {
-                bpm: 120.0,
+            Duration::NumBeats(NumBeatsParams {
+                bpm: Some(120.0),
                 divisor: 4,
                 num: 1
             })

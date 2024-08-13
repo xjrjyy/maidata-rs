@@ -223,10 +223,7 @@ fn materialize_slide_track(
     //
     // take care of this, falling back to beat duration of current bpm
     let stop_time = match track.dur {
-        insn::SlideDuration::Simple(duration) => match duration {
-            insn::Duration::BpmNumBeats(p) => bpm_to_beat_dur(p.bpm),
-            _ => beat_dur,
-        },
+        insn::SlideDuration::Simple(duration) => duration.bpm().map_or(beat_dur, bpm_to_beat_dur),
         insn::SlideDuration::Custom(st, _) => stop_time_spec_to_dur(st),
     };
 
@@ -325,9 +322,8 @@ fn materialize_touch_hold_params(
 
 fn materialize_duration(x: insn::Duration, beat_dur: f64) -> f64 {
     match x {
-        insn::Duration::NumBeats(p) => divide_beat(beat_dur, p.divisor) * (p.num as f64),
-        insn::Duration::BpmNumBeats(p) => {
-            let beat_dur = bpm_to_beat_dur(p.bpm);
+        insn::Duration::NumBeats(p) => {
+            let beat_dur = p.bpm.map_or(beat_dur, bpm_to_beat_dur);
             divide_beat(beat_dur, p.divisor) * (p.num as f64)
         }
         insn::Duration::Seconds(x) => x,
