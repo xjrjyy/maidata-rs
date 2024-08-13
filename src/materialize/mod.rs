@@ -84,16 +84,11 @@ pub struct MaterializedTouchHold {
 pub struct MaterializedSlideTrack {
     pub ts: TimestampInSeconds,
     pub start_ts: TimestampInSeconds,
-    pub groups: Vec<MaterializedSlideSegmentGroup>,
+    pub dur: DurationInSeconds,
+    pub segments: Vec<MaterializedSlideSegment>,
     pub is_break: bool,
     pub is_sudden: bool,
     pub is_each: bool,
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct MaterializedSlideSegmentGroup {
-    pub dur: DurationInSeconds,
-    pub segments: Vec<MaterializedSlideSegment>,
 }
 
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]

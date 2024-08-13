@@ -53,7 +53,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 MaterializedNote::SlideTrack(params) => params,
                                 _ => return 0.0,
                             };
-                            slide.groups.iter().map(|group| group.dur).sum()
+                            slide.dur
                         })
                         .max_by(|a, b| a.partial_cmp(b).unwrap())
                         .unwrap_or(0.0)
@@ -85,8 +85,8 @@ use maidata::judge::slide_data_getter::SLIDE_DATA_GETTER;
 use maidata::materialize::{DurationInSeconds, Note as MaterializedNote, TimestampInSeconds};
 use maidata::transform::transform::{Transformable, Transformer};
 use maidata::transform::{
-    NormalizedSlideSegment, NormalizedSlideSegmentGroup, NormalizedSlideSegmentParams,
-    NormalizedSlideSegmentShape, NormalizedSlideTrack,
+    NormalizedSlideSegment, NormalizedSlideSegmentParams, NormalizedSlideSegmentShape,
+    NormalizedSlideTrack,
 };
 #[allow(unused_imports)]
 use maidata::Level;
@@ -164,14 +164,13 @@ fn parse_maidata(diff: &AssociatedBeatmapData) -> Option<Vec<Vec<Note>>> {
                 raw_note: note,
             },
             MaterializedNote::SlideTrack(params) => {
-                let mut path = if params.groups.iter().any(|group| {
-                    group
-                        .segments
-                        .iter()
-                        .any(|segment| segment.shape == NormalizedSlideSegmentShape::Fan)
-                }) {
-                    assert!(params.groups.len() == 1 && params.groups[0].segments.len() == 1);
-                    let segment = &params.groups[0].segments[0];
+                let mut path = if params
+                    .segments
+                    .iter()
+                    .any(|segment| segment.shape == NormalizedSlideSegmentShape::Fan)
+                {
+                    assert!(params.segments.len() == 1);
+                    let segment = &params.segments[0];
                     // TODO: handle fan slide
                     [7, 0, 1]
                         .iter()
@@ -189,11 +188,7 @@ fn parse_maidata(diff: &AssociatedBeatmapData) -> Option<Vec<Vec<Note>>> {
                         })
                         .flat_map(|segment| {
                             SLIDE_DATA_GETTER
-                                .get_path(&NormalizedSlideTrack {
-                                    groups: vec![NormalizedSlideSegmentGroup {
-                                        segments: vec![segment],
-                                    }],
-                                })
+                                .get_path_by_segment(&segment)
                                 .into_iter()
                                 .flatten()
                                 .flatten()
@@ -201,20 +196,13 @@ fn parse_maidata(diff: &AssociatedBeatmapData) -> Option<Vec<Vec<Note>>> {
                         })
                         .collect::<Vec<_>>()
                 } else {
-                    let groups = params
-                        .groups
+                    let segments = params
+                        .segments
                         .iter()
-                        .map(|group| {
-                            let segments = group
-                                .segments
-                                .iter()
-                                .map(materialized_to_normalized_slide_segment)
-                                .collect();
-                            NormalizedSlideSegmentGroup { segments }
-                        })
+                        .map(materialized_to_normalized_slide_segment)
                         .collect();
                     SLIDE_DATA_GETTER
-                        .get_path(&NormalizedSlideTrack { groups })
+                        .get_path(&NormalizedSlideTrack { segments })
                         .into_iter()
                         .flatten()
                         .flatten()
@@ -222,11 +210,7 @@ fn parse_maidata(diff: &AssociatedBeatmapData) -> Option<Vec<Vec<Note>>> {
                 };
                 path.sort();
                 path.dedup();
-                let dur = params
-                    .groups
-                    .iter()
-                    .map(|group| group.dur)
-                    .sum::<DurationInSeconds>();
+                let dur = params.dur;
                 Note {
                     sensors: path,
                     dur: params.ts - SLIDE_JUDGE_THRESHOLD..params.start_ts + dur, // TODO: check

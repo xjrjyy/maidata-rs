@@ -80,32 +80,17 @@ impl std::fmt::Display for SlideTrackModifier {
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct SlideTrack {
-    pub groups: Vec<SlideSegmentGroup>,
+    pub segments: Vec<SlideSegment>,
+    pub dur: SlideDuration,
     pub modifier: SlideTrackModifier,
 }
 
 impl std::fmt::Display for SlideTrack {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for group in self.groups.iter() {
-            write!(f, "{}", group)?;
-        }
-        write!(f, "{}", self.modifier)
-    }
-}
-
-#[derive(Clone, PartialEq, Debug)]
-pub struct SlideSegmentGroup {
-    pub segments: Vec<SlideSegment>,
-    pub dur: SlideDuration,
-}
-
-impl std::fmt::Display for SlideSegmentGroup {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for segment in self.segments.iter() {
             write!(f, "{}", segment)?;
         }
-        write!(f, "[{}]", self.dur)?;
-        Ok(())
+        write!(f, "[{}]{}", self.dur, self.modifier)
     }
 }
 

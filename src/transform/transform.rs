@@ -1,8 +1,8 @@
 use crate::insn::{Key, TouchSensor};
 use crate::transform::{
     NormalizedHoldParams, NormalizedSlideParams, NormalizedSlideSegment,
-    NormalizedSlideSegmentGroup, NormalizedSlideSegmentParams, NormalizedSlideTrack,
-    NormalizedTapParams, NormalizedTouchHoldParams, NormalizedTouchParams,
+    NormalizedSlideSegmentParams, NormalizedSlideTrack, NormalizedTapParams,
+    NormalizedTouchHoldParams, NormalizedTouchParams,
 };
 
 use super::{NormalizedNote, NormalizedSlideSegmentShape};
@@ -108,23 +108,11 @@ impl Transformable for NormalizedSlideSegment {
     }
 }
 
-impl Transformable for NormalizedSlideSegmentGroup {
-    fn transform(&self, transformer: Transformer) -> Self {
-        NormalizedSlideSegmentGroup {
-            segments: self
-                .segments
-                .iter()
-                .map(|segment| segment.transform(transformer))
-                .collect(),
-        }
-    }
-}
-
 impl Transformable for NormalizedSlideTrack {
     fn transform(&self, transformer: Transformer) -> Self {
         NormalizedSlideTrack {
-            groups: self
-                .groups
+            segments: self
+                .segments
                 .iter()
                 .map(|group| group.transform(transformer))
                 .collect(),

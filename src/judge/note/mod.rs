@@ -186,10 +186,8 @@ impl TryFrom<MaterializedNote> for Note {
             MaterializedNote::Tap(t) => Ok(Note::Tap(t.into())),
             MaterializedNote::Touch(t) => Ok(Note::Touch(t.into())),
             MaterializedNote::SlideTrack(s) => {
-                if s.groups.iter().any(|group| {
-                    group.segments.iter().any(|segment| {
-                        segment.shape == crate::transform::NormalizedSlideSegmentShape::Fan
-                    })
+                if s.segments.iter().any(|segment| {
+                    segment.shape == crate::transform::NormalizedSlideSegmentShape::Fan
                 }) {
                     Ok(Note::FanSlide(s.try_into()?))
                 } else {

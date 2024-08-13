@@ -68,29 +68,10 @@ impl std::fmt::Display for NormalizedSlideParams {
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct NormalizedSlideTrack {
-    pub groups: Vec<NormalizedSlideSegmentGroup>,
-}
-
-impl std::fmt::Display for NormalizedSlideTrack {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            self.groups
-                .iter()
-                .map(|x| format!("{}", x))
-                .collect::<Vec<_>>()
-                .join("")
-        )
-    }
-}
-
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub struct NormalizedSlideSegmentGroup {
     pub segments: Vec<NormalizedSlideSegment>,
 }
 
-impl std::fmt::Display for NormalizedSlideSegmentGroup {
+impl std::fmt::Display for NormalizedSlideTrack {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,

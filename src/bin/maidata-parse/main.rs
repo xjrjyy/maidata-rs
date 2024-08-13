@@ -25,7 +25,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 fn parse_maidata<P: AsRef<std::path::Path>>(path: P) -> Result<(), Box<dyn std::error::Error>> {
     let content = read_file(&path);
-    let (maidata, state) = maidata::container::lex_maidata(&content);
+    let (_, state) = maidata::container::lex_maidata(&content);
 
     if state.has_messages() {
         println!("Path: {:?}", path.as_ref());

@@ -190,9 +190,10 @@ pub fn t_slide_track_modifier(
     Ok((if variants.is_empty() { s } else { s1 }, modifier))
 }
 
+// TODO: refactor
 pub fn t_slide_segment_group(
     s: NomSpan,
-) -> PResult<(Option<SlideSegmentGroup>, SlideTrackModifier)> {
+) -> PResult<(Vec<SlideSegment>, Option<SlideDuration>, SlideTrackModifier)> {
     // TODO: track with different speed
     let (s, segments) = ws_list1(t_slide_segment)(s)?;
     let segments = segments.into_iter().flatten().collect::<Vec<_>>();
@@ -200,17 +201,8 @@ pub fn t_slide_segment_group(
     let (s, modifier) = t_slide_track_modifier(s, SlideTrackModifier::default())?;
     let (s, dur) = ws(t_slide_dur).expect("expected slide duration")(s)?;
     let (s, modifier) = t_slide_track_modifier(s, modifier)?;
-    if segments.is_empty() {
-        return Ok((s, (None, modifier)));
-    }
 
-    Ok((
-        s,
-        (
-            dur.flatten().map(|dur| SlideSegmentGroup { segments, dur }),
-            modifier,
-        ),
-    ))
+    Ok((s, (segments, dur.flatten(), modifier)))
 }
 
 pub fn validate_slide_track(start_key: Key, track: &SlideTrack) -> bool {
@@ -228,7 +220,7 @@ pub fn t_slide_track(s: NomSpan, start_key: Option<Key>) -> PResult<Option<Slide
     // it is slightly different from the official syntax
     let modifier = groups
         .iter()
-        .fold(SlideTrackModifier::default(), |mut acc, (_, x)| {
+        .fold(SlideTrackModifier::default(), |mut acc, (_, _, x)| {
             if acc.is_break && x.is_break {
                 s.extra.borrow_mut().add_warning(
                     (start_loc, end_loc).into(),
@@ -238,15 +230,36 @@ pub fn t_slide_track(s: NomSpan, start_key: Option<Key>) -> PResult<Option<Slide
             acc.is_break |= x.is_break;
             acc
         });
-    let groups = groups
+    if groups.len() > 1 {
+        // TODO: message
+        s.extra.borrow_mut().add_error(
+            (start_loc, end_loc).into(),
+            "multiple slide track groups are not supported".to_string(),
+        );
+    }
+    // TODO: merge dur
+    let dur = groups.iter().fold(None, |acc, (_, dur, _)| {
+        if acc.is_some() && dur.is_some() {
+            s.extra.borrow_mut().add_error(
+                (start_loc, end_loc).into(),
+                "duplicate slide duration in slide track instruction".to_string(),
+            );
+        }
+        dur.or(acc)
+    });
+    let segments = groups
         .into_iter()
-        .flat_map(|(group, _)| group)
+        .flat_map(|(segments, _, _)| segments)
         .collect::<Vec<_>>();
-    if groups.is_empty() {
+    if segments.is_empty() || dur.is_none() {
         return Ok((s, None));
     }
 
-    let track = SlideTrack { groups, modifier };
+    let track = SlideTrack {
+        segments,
+        dur: dur.unwrap_or(SlideDuration::Simple(Duration::Seconds(1.0))),
+        modifier,
+    };
 
     if let Some(start_key) = start_key {
         if !validate_slide_track(start_key, &track) {

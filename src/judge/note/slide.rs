@@ -3,8 +3,8 @@ use super::{JudgeNote, JudgeType, Timing, TouchSensorStates, JUDGE_DATA};
 use crate::insn::TouchSensor;
 use crate::materialize::{MaterializedSlideSegment, MaterializedSlideTrack};
 use crate::transform::{
-    NormalizedSlideSegment, NormalizedSlideSegmentGroup, NormalizedSlideSegmentParams,
-    NormalizedSlideSegmentShape, NormalizedSlideTrack,
+    NormalizedSlideSegment, NormalizedSlideSegmentParams, NormalizedSlideSegmentShape,
+    NormalizedSlideTrack,
 };
 
 #[derive(Clone, Debug)]
@@ -29,32 +29,23 @@ impl TryFrom<MaterializedSlideTrack> for Slide {
     type Error = &'static str;
 
     fn try_from(m: MaterializedSlideTrack) -> Result<Self, Self::Error> {
-        if m.groups.iter().any(|group| {
-            group
-                .segments
-                .iter()
-                .any(|segment| segment.shape == NormalizedSlideSegmentShape::Fan)
-        }) {
+        if m.segments
+            .iter()
+            .any(|segment| segment.shape == NormalizedSlideSegmentShape::Fan)
+        {
             return Err("Fan Slide is not supported");
         }
-        let dur = m.groups.iter().map(|group| group.dur).sum::<f64>();
-        // TODO: Implement slide path getter
+        let dur = m.dur;
         let normalized_track = NormalizedSlideTrack {
-            groups: m
-                .groups
+            segments: m
+                .segments
                 .iter()
-                .map(|group| NormalizedSlideSegmentGroup {
-                    segments: group
-                        .segments
-                        .iter()
-                        .map(materialized_to_normalized_slide_segment)
-                        .collect::<Vec<_>>(),
-                })
+                .map(materialized_to_normalized_slide_segment)
                 .collect::<Vec<_>>(),
         };
 
         // Why check head???
-        let head_segment = normalized_track.groups[0].segments[0];
+        let head_segment = normalized_track.segments[0];
         let head_is_thunder = head_segment.shape() == NormalizedSlideSegmentShape::ThunderL
             || head_segment.shape() == NormalizedSlideSegmentShape::ThunderR;
         let head_distance = (head_segment.params().destination.index() + 8
@@ -85,13 +76,12 @@ impl Slide {
         parent: &MaterializedSlideTrack,
     ) -> Result<Self, &'static str> {
         assert!(segment.shape == NormalizedSlideSegmentShape::Fan);
-        let dur = parent.groups.iter().map(|group| group.dur).sum::<f64>();
         Ok(Self {
             path: SLIDE_DATA_GETTER
                 .get_path_by_segment(&materialized_to_normalized_slide_segment(segment))
                 .ok_or("Slide path not found")?,
             appear_time: parent.ts,
-            tail_time: parent.start_ts + dur,
+            tail_time: parent.start_ts + parent.dur,
             _is_break: parent.is_break,
             judge_check_sensor_1: false,
             judge_check_sensor_3: false,

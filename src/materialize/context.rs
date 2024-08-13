@@ -2,9 +2,8 @@ use std::vec;
 
 use super::Note;
 use crate::materialize::{
-    MaterializedBpm, MaterializedHold, MaterializedSlideSegment, MaterializedSlideSegmentGroup,
-    MaterializedSlideTrack, MaterializedTap, MaterializedTapShape, MaterializedTouch,
-    MaterializedTouchHold,
+    MaterializedBpm, MaterializedHold, MaterializedSlideSegment, MaterializedSlideTrack,
+    MaterializedTap, MaterializedTapShape, MaterializedTouch, MaterializedTouchHold,
 };
 use crate::{insn, transform, Sp, WithSpan};
 
@@ -223,7 +222,7 @@ fn materialize_slide_track(
     // slide track
     //
     // take care of this, falling back to beat duration of current bpm
-    let stop_time = match track.groups.last().unwrap().dur {
+    let stop_time = match track.dur {
         insn::SlideDuration::Simple(duration) => match duration {
             insn::Duration::BpmNumBeats(p) => bpm_to_beat_dur(p.bpm),
             _ => beat_dur,
@@ -234,13 +233,12 @@ fn materialize_slide_track(
     let start_ts = ts + stop_time;
 
     let mut start_key = start_key;
-    let groups = track
-        .groups
+    let segments = track
+        .segments
         .iter()
-        .map(|group| {
-            let result = materialize_slide_segment_group(beat_dur, start_key, group);
-            // TODO: trait for slide end position
-            start_key = group.segments.last().unwrap().params().destination;
+        .map(|segment| {
+            let result = materialize_slide_segment(start_key, segment);
+            start_key = segment.params().destination;
             result
         })
         .collect();
@@ -248,35 +246,36 @@ fn materialize_slide_track(
     MaterializedSlideTrack {
         ts,
         start_ts,
-        groups,
+        dur: materialize_duration(track.dur.slide_duration(), beat_dur),
+        segments,
         is_break: track.modifier.is_break,
         is_sudden: track.modifier.is_sudden,
         is_each,
     }
 }
 
-fn materialize_slide_segment_group(
-    beat_dur: f64,
-    start: insn::Key,
-    group: &insn::SlideSegmentGroup,
-) -> MaterializedSlideSegmentGroup {
-    let mut start = start;
-    let segments = group
-        .segments
-        .iter()
-        .map(|segment| {
-            let result = materialize_slide_segment(start, segment);
-            // TODO: trait for slide end position
-            start = segment.params().destination;
-            result
-        })
-        .collect();
+// fn materialize_slide_segment_group(
+//     beat_dur: f64,
+//     start: insn::Key,
+//     group: &insn::SlideSegmentGroup,
+// ) -> MaterializedSlideSegmentGroup {
+//     let mut start = start;
+//     let segments = group
+//         .segments
+//         .iter()
+//         .map(|segment| {
+//             let result = materialize_slide_segment(start, segment);
+//             // TODO: trait for slide end position
+//             start = segment.params().destination;
+//             result
+//         })
+//         .collect();
 
-    MaterializedSlideSegmentGroup {
-        dur: materialize_duration(group.dur.slide_duration(), beat_dur),
-        segments,
-    }
-}
+//     MaterializedSlideSegmentGroup {
+//         dur: materialize_duration(group.dur.slide_duration(), beat_dur),
+//         segments,
+//     }
+// }
 
 fn materialize_slide_segment(
     start: insn::Key,

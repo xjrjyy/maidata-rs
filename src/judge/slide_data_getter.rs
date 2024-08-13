@@ -146,17 +146,15 @@ impl SlideDataGetter {
     // pay attention to Fan Slide
     pub fn get(&self, track: &NormalizedSlideTrack) -> Option<SlideData> {
         let mut result = SlideData::new();
-        for group in &track.groups {
-            for segment in &group.segments {
-                let mut data = self.get_by_segment(segment)?;
-                assert!(!data.is_empty());
-                if !result.is_empty() {
-                    assert!(result.last().unwrap().hit_points.len() == 1);
-                    let push_distance = result.0.pop().unwrap().push_distance;
-                    data.0.first_mut().unwrap().push_distance += push_distance;
-                }
-                result.0.extend(data.0);
+        for segment in &track.segments {
+            let mut data = self.get_by_segment(segment)?;
+            assert!(!data.is_empty());
+            if !result.is_empty() {
+                assert!(result.last().unwrap().hit_points.len() == 1);
+                let push_distance = result.0.pop().unwrap().push_distance;
+                data.0.first_mut().unwrap().push_distance += push_distance;
             }
+            result.0.extend(data.0);
         }
         Some(result)
     }

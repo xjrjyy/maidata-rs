@@ -106,7 +106,13 @@ where
 {
     let content = read_file(path);
     let (maidata, state) = maidata::container::lex_maidata(&content);
-    assert!(!state.has_messages());
+    // assert!(!state.has_messages());
+    for error in &state.errors {
+        eprintln!("Error: {}", error);
+    }
+    for warning in &state.warnings {
+        eprintln!("Warning: {}", warning);
+    }
 
     maidata
         .iter_difficulties()

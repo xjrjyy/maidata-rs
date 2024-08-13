@@ -1,8 +1,8 @@
-use crate::insn::{Key, RawNoteInsn, SlideSegment, SlideSegmentGroup, SlideTrack};
+use crate::insn::{Key, RawNoteInsn, SlideSegment, SlideTrack};
 use crate::transform::{
     NormalizedHoldParams, NormalizedNote, NormalizedSlideParams, NormalizedSlideSegment,
-    NormalizedSlideSegmentGroup, NormalizedSlideSegmentParams, NormalizedSlideTrack,
-    NormalizedTapParams, NormalizedTouchHoldParams, NormalizedTouchParams,
+    NormalizedSlideSegmentParams, NormalizedSlideTrack, NormalizedTapParams,
+    NormalizedTouchHoldParams, NormalizedTouchParams,
 };
 
 use super::NormalizedSlideSegmentShape;
@@ -104,37 +104,18 @@ pub fn normalize_slide_segment(
     })
 }
 
-pub fn normalize_slide_segment_group(
-    start: Key,
-    group: &SlideSegmentGroup,
-) -> Option<NormalizedSlideSegmentGroup> {
+pub fn normalize_slide_track(start: Key, track: &SlideTrack) -> Option<NormalizedSlideTrack> {
     let mut start = start;
-    group
+    track
         .segments
         .iter()
         .map(|segment| {
             let result = normalize_slide_segment(start, segment);
-            // TODO: trait for slide end position
             start = segment.params().destination;
             result
         })
         .collect::<Option<Vec<_>>>()
-        .map(|segments| NormalizedSlideSegmentGroup { segments })
-}
-
-pub fn normalize_slide_track(start: Key, track: &SlideTrack) -> Option<NormalizedSlideTrack> {
-    let mut start = start;
-    track
-        .groups
-        .iter()
-        .map(|group| {
-            let result = normalize_slide_segment_group(start, group);
-            // TODO: trait for slide end position
-            start = group.segments.last().unwrap().params().destination;
-            result
-        })
-        .collect::<Option<Vec<_>>>()
-        .map(|groups| NormalizedSlideTrack { groups })
+        .map(|segments| NormalizedSlideTrack { segments })
 }
 
 pub fn normalize_note(note: &RawNoteInsn) -> Option<NormalizedNote> {

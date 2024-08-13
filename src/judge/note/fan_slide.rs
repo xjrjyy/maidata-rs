@@ -13,10 +13,10 @@ impl TryFrom<MaterializedSlideTrack> for FanSlide {
     type Error = &'static str;
 
     fn try_from(m: MaterializedSlideTrack) -> Result<Self, Self::Error> {
-        if m.groups.len() != 1 || m.groups[0].segments.len() != 1 {
+        if m.segments.len() != 1 {
             return Err("Fan Slide must have only one group and one segment");
         }
-        let segment = m.groups[0].segments[0];
+        let segment = m.segments[0];
         if segment.shape != NormalizedSlideSegmentShape::Fan {
             return Err("Fan Slide must have a fan segment");
         }
