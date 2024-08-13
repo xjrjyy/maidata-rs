@@ -148,13 +148,12 @@ impl SlideDataGetter {
         let mut result = SlideData::new();
         for group in &track.groups {
             for segment in &group.segments {
-                let data = self.get_by_segment(segment)?;
+                let mut data = self.get_by_segment(segment)?;
                 assert!(!data.is_empty());
                 if !result.is_empty() {
-                    // Ensure the end is in the A TouchSensor
                     assert!(result.last().unwrap().hit_points.len() == 1);
-                    // assert!(result.last().unwrap() == path.first().unwrap());
-                    result.0.pop();
+                    let push_distance = result.0.pop().unwrap().push_distance;
+                    data.0.first_mut().unwrap().push_distance += push_distance;
                 }
                 result.0.extend(data.0);
             }
