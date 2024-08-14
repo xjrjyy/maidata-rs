@@ -11,17 +11,32 @@ fn t_slide_dur_spec_custom_bpm(s: NomSpan) -> PResult<Option<SlideDuration>> {
     use nom::character::complete::char;
     use nom::number::complete::double;
 
+    let (s, start_loc) = nom_locate::position(s)?;
     let (s, bpm) = ws(double)(s)?;
     let (s, _) = ws(char('#'))(s)?;
     let (s, dur) = ws(double)(s)?;
+    let (s, end_loc) = nom_locate::position(s)?;
 
+    if !bpm.is_finite() || bpm <= 0.0 {
+        s.extra.borrow_mut().add_error(
+            (start_loc, end_loc).into(),
+            format!("invalid BPM value in slide duration: {}", bpm),
+        );
+        return Ok((s, None));
+    }
+    if !dur.is_finite() || dur <= 0.0 {
+        s.extra.borrow_mut().add_error(
+            (start_loc, end_loc).into(),
+            format!("invalid duration value in slide duration: {}", dur),
+        );
+        return Ok((s, None));
+    }
     Ok((
         s,
         Some(SlideDuration::Custom(
             SlideStopTimeSpec::Bpm(bpm),
             Duration::Seconds(dur),
-        ))
-        .filter(|_| bpm.is_finite() && bpm > 0.0 && dur.is_finite() && dur > 0.0),
+        )),
     ))
 }
 
@@ -32,11 +47,13 @@ fn t_slide_dur_spec_custom_seconds(s: NomSpan) -> PResult<Option<SlideDuration>>
     use nom::number::complete::double;
     use nom::sequence::preceded;
 
+    let (s, start_loc) = nom_locate::position(s)?;
     let (s, sec) = ws(double)(s)?;
     let (s, dur) = ws(alt((
         preceded(tag("##"), ws(t_dur_spec_num_beats)),
         preceded(char('#'), t_dur_spec_absolute), // like "##0.5", no need to use ws
     )))(s)?;
+    let (s, end_loc) = nom_locate::position(s)?;
 
     // following cases are possible in this combinator:
     //
@@ -45,10 +62,17 @@ fn t_slide_dur_spec_custom_seconds(s: NomSpan) -> PResult<Option<SlideDuration>>
     // - `[3##4:1]` -> stop time=(absolute 3s) dur=4:1
     // - `[3.0##160#4:1]` -> stop time=(absolute 3s) dur=4:1(as in BPM 160)
 
+    // sec can be 0.0
+    if !sec.is_finite() || sec < 0.0 {
+        s.extra.borrow_mut().add_error(
+            (start_loc, end_loc).into(),
+            format!("invalid stop time value in slide duration: {}", sec),
+        );
+        return Ok((s, None));
+    }
     Ok((
         s,
-        dur.map(|dur| SlideDuration::Custom(SlideStopTimeSpec::Seconds(sec), dur))
-            .filter(|_| sec.is_finite() && sec > 0.0),
+        dur.map(|dur| SlideDuration::Custom(SlideStopTimeSpec::Seconds(sec), dur)),
     ))
 }
 
@@ -259,7 +283,18 @@ pub fn t_slide_track(s: NomSpan, start_key: Option<Key>) -> PResult<Option<Slide
         .into_iter()
         .flat_map(|(segments, _, _)| segments)
         .collect::<Vec<_>>();
-    if segments.is_empty() || dur.is_none() {
+    if segments.is_empty() {
+        s.extra.borrow_mut().add_error(
+            (start_loc, end_loc).into(),
+            "empty slide track instruction".to_string(),
+        );
+        return Ok((s, None));
+    }
+    if dur.is_none() {
+        s.extra.borrow_mut().add_error(
+            (start_loc, end_loc).into(),
+            "missing slide duration in slide track instruction".to_string(),
+        );
         return Ok((s, None));
     }
 
@@ -436,16 +471,19 @@ mod tests {
             test_parser_ok(t_slide_dur, "[ 160 #2.0 ]", " ,").unwrap(),
             SlideDuration::Custom(SlideStopTimeSpec::Bpm(160.0), Duration::Seconds(2.0))
         );
-        assert_eq!(test_parser_ok(t_slide_dur, "[0#2.0]", ""), None);
-        assert_eq!(test_parser_ok(t_slide_dur, "[inf#2.0]", ""), None);
+        test_parser_err(t_slide_dur, "[0#2.0]");
+        test_parser_err(t_slide_dur, "[inf#2.0]");
         // [160##2.0] is valid, it is in the next group
 
         assert_eq!(
             test_parser_ok(t_slide_dur, "[ 3.0## 1.5 ]", " ,").unwrap(),
             SlideDuration::Custom(SlideStopTimeSpec::Seconds(3.0), Duration::Seconds(1.5))
         );
-        assert_eq!(test_parser_ok(t_slide_dur, "[0##2.0]", ""), None);
-        assert_eq!(test_parser_ok(t_slide_dur, "[nan##2.0]", ""), None);
+        assert_eq!(
+            test_parser_ok(t_slide_dur, "[0##2.0]", "").unwrap(),
+            SlideDuration::Custom(SlideStopTimeSpec::Seconds(0.0), Duration::Seconds(2.0))
+        );
+        test_parser_err(t_slide_dur, "[nan##2.0]");
         test_parser_err(t_slide_dur, "[3.0# #1.5]");
         test_parser_err(t_slide_dur, "[3.0###1.5]");
         // [3.0#1.5] is valid, it is in the previous group
@@ -461,8 +499,18 @@ mod tests {
                 })
             )
         );
-        assert_eq!(test_parser_ok(t_slide_dur, "[0##4:1]", ""), None);
-        assert_eq!(test_parser_ok(t_slide_dur, "[-1##4:1]", ""), None);
+        assert_eq!(
+            test_parser_ok(t_slide_dur, "[0##4:1]", "").unwrap(),
+            SlideDuration::Custom(
+                SlideStopTimeSpec::Seconds(0.0),
+                Duration::NumBeats(NumBeatsParams {
+                    bpm: None,
+                    divisor: 4,
+                    num: 1
+                })
+            )
+        );
+        test_parser_err(t_slide_dur, "[-1##4:1]");
         test_parser_err(t_slide_dur, "[3.0# #4:1]");
         test_parser_err(t_slide_dur, "[3.0###4:1]");
 
@@ -477,9 +525,19 @@ mod tests {
                 })
             )
         );
-        assert_eq!(test_parser_ok(t_slide_dur, "[0##160#4:1]", ""), None);
-        assert_eq!(test_parser_ok(t_slide_dur, "[inf##160#4:1]", ""), None);
-        assert_eq!(test_parser_ok(t_slide_dur, "[2##0.0#4:1]", ""), None);
+        assert_eq!(
+            test_parser_ok(t_slide_dur, "[0##160#4:1]", "").unwrap(),
+            SlideDuration::Custom(
+                SlideStopTimeSpec::Seconds(0.0),
+                Duration::NumBeats(NumBeatsParams {
+                    bpm: Some(160.0),
+                    divisor: 4,
+                    num: 1
+                })
+            )
+        );
+        test_parser_err(t_slide_dur, "[inf##160#4:1]");
+        test_parser_err(t_slide_dur, "[2##0.0#4:1]");
         test_parser_err(t_slide_dur, "[3.0# #160#4:1]");
         test_parser_err(t_slide_dur, "[3.0###160#4:1]");
         test_parser_err(t_slide_dur, "[3.0##160##4:1]");

@@ -4,10 +4,16 @@ pub fn t_dur_spec_num_beats_params(s: NomSpan) -> PResult<Option<NumBeatsParams>
     use nom::character::complete::{char, digit1};
 
     // TODO: support floating point
+    let (s, start_loc) = nom_locate::position(s)?;
     let (s, divisor_str) = digit1(s)?;
     let (s, _) = ws(char(':'))(s)?;
     let (s, num_str) = ws(digit1).expect("expected number of beats")(s)?;
+    let (s, end_loc) = nom_locate::position(s)?;
     if num_str.is_none() {
+        s.extra.borrow_mut().add_error(
+            (start_loc, end_loc).into(),
+            "expected number of beats".to_string(),
+        );
         return Ok((s, None));
     }
 
@@ -15,14 +21,23 @@ pub fn t_dur_spec_num_beats_params(s: NomSpan) -> PResult<Option<NumBeatsParams>
     let divisor = divisor_str.fragment().parse().unwrap();
     let num = num_str.unwrap().fragment().parse().unwrap();
 
+    if divisor == 0 {
+        s.extra.borrow_mut().add_error(
+            (start_loc, end_loc).into(),
+            format!(
+                "invalid beat divisor or number of beats: {}:{}",
+                divisor, num
+            ),
+        );
+        return Ok((s, None));
+    }
     Ok((
         s,
         Some(NumBeatsParams {
             bpm: None,
             divisor,
             num,
-        })
-        .filter(|_| divisor > 0 && num > 0),
+        }),
     ))
 }
 
@@ -30,15 +45,24 @@ pub fn t_dur_spec_bpm_num_beats_params(s: NomSpan) -> PResult<Option<NumBeatsPar
     use nom::character::complete::char;
     use nom::number::complete::double;
 
+    let (s, start_loc) = nom_locate::position(s)?;
     let (s, bpm) = double(s)?;
     let (s, _) = ws(char('#'))(s)?;
     let (s, mut dur) = ws(t_dur_spec_num_beats_params)(s)?;
+    let (s, end_loc) = nom_locate::position(s)?;
 
     if let Some(dur) = dur.as_mut() {
         dur.bpm = Some(bpm);
     }
 
-    Ok((s, dur.filter(|_| bpm.is_finite() && bpm > 0.0)))
+    if !bpm.is_finite() || bpm <= 0.0 {
+        s.extra.borrow_mut().add_error(
+            (start_loc, end_loc).into(),
+            format!("invalid bpm value: {}", bpm),
+        );
+        return Ok((s, None));
+    }
+    Ok((s, dur))
 }
 
 pub fn t_dur_spec_num_beats(s: NomSpan) -> PResult<Option<Duration>> {
@@ -49,12 +73,19 @@ pub fn t_dur_spec_num_beats(s: NomSpan) -> PResult<Option<Duration>> {
 }
 
 pub fn t_dur_spec_absolute(s: NomSpan) -> PResult<Option<Duration>> {
+    let (s, start_loc) = nom_locate::position(s)?;
     let (s, dur) = t_absolute_duration(s)?;
+    let (s, end_loc) = nom_locate::position(s)?;
 
-    Ok((
-        s,
-        Some(Duration::Seconds(dur)).filter(|_| dur.is_finite() && dur > 0.0),
-    ))
+    // dur can be 0
+    if !dur.is_finite() || dur < 0.0 {
+        s.extra.borrow_mut().add_error(
+            (start_loc, end_loc).into(),
+            format!("invalid duration value: {}", dur),
+        );
+        return Ok((s, None));
+    }
+    Ok((s, Some(Duration::Seconds(dur))))
 }
 
 pub fn t_dur_spec(s: NomSpan) -> PResult<Option<Duration>> {
@@ -84,8 +115,16 @@ mod tests {
                 num: 3
             })
         );
-        assert_eq!(test_parser_ok(t_dur, "[0:1]", ""), None);
-        assert_eq!(test_parser_ok(t_dur, "[1:0]", ""), None);
+        assert_eq!(
+            test_parser_ok(t_dur, "[1:0]", "").unwrap(),
+            Duration::NumBeats(NumBeatsParams {
+                bpm: None,
+                divisor: 1,
+                num: 0
+            })
+        );
+        test_parser_err(t_dur, "[1:]");
+        test_parser_err(t_dur, "[0:1]");
         test_parser_err(t_dur, " [4:3]");
         test_parser_err(t_dur, "[4.5:2]");
         test_parser_err(t_dur, "[4:2.5]");
@@ -98,10 +137,13 @@ mod tests {
             test_parser_ok(t_dur, "[ # 1 ]", "").unwrap(),
             Duration::Seconds(1.0)
         );
-        assert_eq!(test_parser_ok(t_dur, "[#0]", ""), None);
-        assert_eq!(test_parser_ok(t_dur, "[#-1]", ""), None);
-        assert_eq!(test_parser_ok(t_dur, "[#inf]", ""), None);
-        assert_eq!(test_parser_ok(t_dur, "[#nan]", ""), None);
+        assert_eq!(
+            test_parser_ok(t_dur, "[#.0]", "").unwrap(),
+            Duration::Seconds(0.0)
+        );
+        test_parser_err(t_dur, "[#-1]");
+        test_parser_err(t_dur, "[#inf]");
+        test_parser_err(t_dur, "[#nan]");
         test_parser_err(t_dur, "[#2.5.0]");
         test_parser_err(t_dur, "[#2 .5]");
 
@@ -113,9 +155,8 @@ mod tests {
                 num: 1
             })
         );
-        assert_eq!(test_parser_ok(t_dur, "[0#1:1]", ""), None);
-        assert_eq!(test_parser_ok(t_dur, "[120#0:1]", ""), None);
-        assert_eq!(test_parser_ok(t_dur, "[120#1:0]", ""), None);
+        test_parser_err(t_dur, "[0#1:1]");
+        test_parser_err(t_dur, "[120#0:1]");
         test_parser_err(t_dur, "[120#4:1.5]");
 
         test_parser_err(t_dur, "[4:1#160]");
