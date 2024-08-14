@@ -46,11 +46,15 @@ impl TryFrom<MaterializedSlideTrack> for Slide {
 
         // Why check head???
         let head_segment = normalized_track.segments[0];
+        let tail_segment = normalized_track.segments.last().unwrap();
         let head_is_thunder = head_segment.shape() == NormalizedSlideSegmentShape::ThunderL
             || head_segment.shape() == NormalizedSlideSegmentShape::ThunderR;
-        let head_distance = (head_segment.params().destination.index() + 8
+        let mut distance = (tail_segment.params().destination.index() + 8
             - head_segment.params().start.index())
             % 8;
+        if head_segment.shape() == NormalizedSlideSegmentShape::ThunderR {
+            distance = (8 - distance) % 8;
+        }
 
         Ok(Self {
             path: SLIDE_DATA_GETTER
@@ -59,8 +63,8 @@ impl TryFrom<MaterializedSlideTrack> for Slide {
             appear_time: m.ts,
             tail_time: m.start_ts + dur,
             _is_break: m.is_break,
-            judge_check_sensor_1: head_is_thunder,
-            judge_check_sensor_3: head_is_thunder && head_distance == 4,
+            judge_check_sensor_1: head_is_thunder && (1..=4).contains(&distance),
+            judge_check_sensor_3: head_is_thunder && distance == 4,
             judge_type: JudgeType::Slide,
             judge_index: 0,
             judge_is_on: false,
