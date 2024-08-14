@@ -162,7 +162,8 @@ fn t_bpm(s: NomSpan) -> PResult<Option<SpRawInsn>> {
 
     Ok((
         s,
-        bpm.map(|bpm| RawInsn::Bpm(BpmParams { new_bpm: bpm }).with_span(span)),
+        bpm.filter(|&bpm| bpm.is_finite() && bpm > 0.0)
+            .map(|bpm| RawInsn::Bpm(BpmParams { new_bpm: bpm }).with_span(span)),
     ))
 }
 
@@ -176,23 +177,29 @@ fn t_absolute_duration(s: NomSpan) -> PResult<f64> {
     Ok((s, dur))
 }
 
-fn t_beat_divisor_param_int(s: NomSpan) -> PResult<BeatDivisorParams> {
+fn t_beat_divisor_param_int(s: NomSpan) -> PResult<Option<BeatDivisorParams>> {
     use nom::character::complete::digit1;
 
     let (s, divisor_str) = digit1(s)?;
 
     let divisor = divisor_str.fragment().parse().unwrap();
 
-    Ok((s, BeatDivisorParams::NewDivisor(divisor)))
+    Ok((
+        s,
+        Some(BeatDivisorParams::NewDivisor(divisor)).filter(|_| divisor > 0),
+    ))
 }
 
-fn t_beat_divisor_param_float(s: NomSpan) -> PResult<BeatDivisorParams> {
+fn t_beat_divisor_param_float(s: NomSpan) -> PResult<Option<BeatDivisorParams>> {
     let (s, dur) = t_absolute_duration(s)?;
 
-    Ok((s, BeatDivisorParams::NewAbsoluteDuration(dur)))
+    Ok((
+        s,
+        Some(BeatDivisorParams::NewAbsoluteDuration(dur)).filter(|_| dur.is_finite() && dur > 0.0),
+    ))
 }
 
-fn t_beat_divisor_param(s: NomSpan) -> PResult<BeatDivisorParams> {
+fn t_beat_divisor_param(s: NomSpan) -> PResult<Option<BeatDivisorParams>> {
     use nom::branch::alt;
 
     alt((t_beat_divisor_param_int, t_beat_divisor_param_float))(s)
@@ -207,7 +214,9 @@ fn t_beat_divisor(s: NomSpan) -> PResult<Option<SpRawInsn>> {
     let span = (start_loc, end_loc);
     Ok((
         s,
-        params.map(|params| RawInsn::BeatDivisor(params).with_span(span)),
+        params
+            .flatten()
+            .map(|params| RawInsn::BeatDivisor(params).with_span(span)),
     ))
 }
 
@@ -270,9 +279,36 @@ mod tests {
             *test_parser_ok(t_bpm, "( 123.4 )", " { 4}1, ").unwrap(),
             RawInsn::Bpm(BpmParams { new_bpm: 123.4 })
         );
+        assert_eq!(test_parser_ok(t_bpm, "(0.0)", ""), None);
+        assert_eq!(test_parser_ok(t_bpm, "(-1)", ""), None);
+        assert_eq!(test_parser_ok(t_bpm, "(nan)", ""), None);
+        assert_eq!(test_parser_ok(t_bpm, "(inf)", ""), None);
 
         test_parser_err(t_bpm, "(123 456)");
         test_parser_err(t_bpm, "()");
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_t_beat_divisor() -> Result<(), Box<dyn Error>> {
+        assert_eq!(
+            *test_parser_ok(t_beat_divisor, "{ 4 }", " ").unwrap(),
+            RawInsn::BeatDivisor(BeatDivisorParams::NewDivisor(4))
+        );
+        assert_eq!(
+            *test_parser_ok(t_beat_divisor, "{ # 4.0}", " ( 111)").unwrap(),
+            RawInsn::BeatDivisor(BeatDivisorParams::NewAbsoluteDuration(4.0))
+        );
+        assert_eq!(test_parser_ok(t_beat_divisor, "{0}", ""), None);
+        assert_eq!(test_parser_ok(t_beat_divisor, "{#0.0}", ""), None);
+        assert_eq!(test_parser_ok(t_beat_divisor, "{#-1}", ""), None);
+        assert_eq!(test_parser_ok(t_beat_divisor, "{#nan}", ""), None);
+        assert_eq!(test_parser_ok(t_beat_divisor, "{#inf}", ""), None);
+
+        test_parser_err(t_beat_divisor, "{-1}");
+        test_parser_err(t_beat_divisor, "{4 4}");
+        test_parser_err(t_beat_divisor, "{}");
 
         Ok(())
     }

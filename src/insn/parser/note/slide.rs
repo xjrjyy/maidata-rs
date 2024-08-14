@@ -1,6 +1,4 @@
-use super::duration::{
-    t_dur_spec, t_dur_spec_absolute, t_dur_spec_bpm_num_beats, t_dur_spec_num_beats,
-};
+use super::duration::{t_dur_spec, t_dur_spec_absolute, t_dur_spec_num_beats};
 use super::*;
 
 fn t_slide_dur_spec_simple(s: NomSpan) -> PResult<Option<SlideDuration>> {
@@ -22,7 +20,8 @@ fn t_slide_dur_spec_custom_bpm(s: NomSpan) -> PResult<Option<SlideDuration>> {
         Some(SlideDuration::Custom(
             SlideStopTimeSpec::Bpm(bpm),
             Duration::Seconds(dur),
-        )),
+        ))
+        .filter(|_| bpm.is_finite() && bpm > 0.0 && dur.is_finite() && dur > 0.0),
     ))
 }
 
@@ -33,16 +32,13 @@ fn t_slide_dur_spec_custom_seconds(s: NomSpan) -> PResult<Option<SlideDuration>>
     use nom::number::complete::double;
     use nom::sequence::preceded;
 
-    let (s, x1) = ws(double)(s)?;
+    let (s, sec) = ws(double)(s)?;
     let (s, dur) = ws(alt((
-        preceded(
-            tag("##"),
-            ws(alt((t_dur_spec_num_beats, t_dur_spec_bpm_num_beats))),
-        ),
+        preceded(tag("##"), ws(t_dur_spec_num_beats)),
         preceded(char('#'), t_dur_spec_absolute), // like "##0.5", no need to use ws
     )))(s)?;
 
-    // TODO: following cases are possible in this combinator:
+    // following cases are possible in this combinator:
     //
     // - `[160#2.0]` -> stop time=(as in BPM 160) dur=2.0s
     // - `[3##1.5]` -> stop time=(absolute 3s) dur=1.5s
@@ -51,7 +47,8 @@ fn t_slide_dur_spec_custom_seconds(s: NomSpan) -> PResult<Option<SlideDuration>>
 
     Ok((
         s,
-        dur.map(|dur| SlideDuration::Custom(SlideStopTimeSpec::Seconds(x1), dur)),
+        dur.map(|dur| SlideDuration::Custom(SlideStopTimeSpec::Seconds(sec), dur))
+            .filter(|_| sec.is_finite() && sec > 0.0),
     ))
 }
 
@@ -439,15 +436,19 @@ mod tests {
             test_parser_ok(t_slide_dur, "[ 160 #2.0 ]", " ,").unwrap(),
             SlideDuration::Custom(SlideStopTimeSpec::Bpm(160.0), Duration::Seconds(2.0))
         );
-        // [160##2.0] is valid, but it is in the next group
+        assert_eq!(test_parser_ok(t_slide_dur, "[0#2.0]", ""), None);
+        assert_eq!(test_parser_ok(t_slide_dur, "[inf#2.0]", ""), None);
+        // [160##2.0] is valid, it is in the next group
 
         assert_eq!(
             test_parser_ok(t_slide_dur, "[ 3.0## 1.5 ]", " ,").unwrap(),
             SlideDuration::Custom(SlideStopTimeSpec::Seconds(3.0), Duration::Seconds(1.5))
         );
+        assert_eq!(test_parser_ok(t_slide_dur, "[0##2.0]", ""), None);
+        assert_eq!(test_parser_ok(t_slide_dur, "[nan##2.0]", ""), None);
         test_parser_err(t_slide_dur, "[3.0# #1.5]");
         test_parser_err(t_slide_dur, "[3.0###1.5]");
-        // [3.0#1.5] is valid, but it is in the previous group
+        // [3.0#1.5] is valid, it is in the previous group
 
         assert_eq!(
             test_parser_ok(t_slide_dur, "[ 3.0## 4 : 1 ]", " ,").unwrap(),
@@ -460,6 +461,8 @@ mod tests {
                 })
             )
         );
+        assert_eq!(test_parser_ok(t_slide_dur, "[0##4:1]", ""), None);
+        assert_eq!(test_parser_ok(t_slide_dur, "[-1##4:1]", ""), None);
         test_parser_err(t_slide_dur, "[3.0# #4:1]");
         test_parser_err(t_slide_dur, "[3.0###4:1]");
 
@@ -474,6 +477,9 @@ mod tests {
                 })
             )
         );
+        assert_eq!(test_parser_ok(t_slide_dur, "[0##160#4:1]", ""), None);
+        assert_eq!(test_parser_ok(t_slide_dur, "[inf##160#4:1]", ""), None);
+        assert_eq!(test_parser_ok(t_slide_dur, "[2##0.0#4:1]", ""), None);
         test_parser_err(t_slide_dur, "[3.0# #160#4:1]");
         test_parser_err(t_slide_dur, "[3.0###160#4:1]");
         test_parser_err(t_slide_dur, "[3.0##160##4:1]");

@@ -1,6 +1,6 @@
 use super::*;
 
-pub fn t_dur_spec_num_beats(s: NomSpan) -> PResult<Option<Duration>> {
+pub fn t_dur_spec_num_beats_params(s: NomSpan) -> PResult<Option<NumBeatsParams>> {
     use nom::character::complete::{char, digit1};
 
     // TODO: support floating point
@@ -17,55 +17,50 @@ pub fn t_dur_spec_num_beats(s: NomSpan) -> PResult<Option<Duration>> {
 
     Ok((
         s,
-        Some(Duration::NumBeats(NumBeatsParams {
+        Some(NumBeatsParams {
             bpm: None,
             divisor,
             num,
-        })),
+        })
+        .filter(|_| divisor > 0 && num > 0),
     ))
 }
 
-pub fn t_dur_spec_bpm_num_beats(s: NomSpan) -> PResult<Option<Duration>> {
+pub fn t_dur_spec_bpm_num_beats_params(s: NomSpan) -> PResult<Option<NumBeatsParams>> {
     use nom::character::complete::char;
     use nom::number::complete::double;
 
     let (s, bpm) = double(s)?;
     let (s, _) = ws(char('#'))(s)?;
-    let (s, dur) = ws(t_dur_spec_num_beats)(s)?;
+    let (s, mut dur) = ws(t_dur_spec_num_beats_params)(s)?;
 
-    if let Some(Duration::NumBeats(NumBeatsParams {
-        bpm: _,
-        divisor,
-        num,
-    })) = dur
-    {
-        Ok((
-            s,
-            Some(Duration::NumBeats(NumBeatsParams {
-                bpm: Some(bpm),
-                divisor,
-                num,
-            })),
-        ))
-    } else {
-        Ok((s, None))
+    if let Some(dur) = dur.as_mut() {
+        dur.bpm = Some(bpm);
     }
+
+    Ok((s, dur.filter(|_| bpm.is_finite() && bpm > 0.0)))
+}
+
+pub fn t_dur_spec_num_beats(s: NomSpan) -> PResult<Option<Duration>> {
+    use nom::branch::alt;
+
+    alt((t_dur_spec_num_beats_params, t_dur_spec_bpm_num_beats_params))(s)
+        .map(|(s, dur)| (s, dur.map(Duration::NumBeats)))
 }
 
 pub fn t_dur_spec_absolute(s: NomSpan) -> PResult<Option<Duration>> {
     let (s, dur) = t_absolute_duration(s)?;
 
-    Ok((s, Some(Duration::Seconds(dur))))
+    Ok((
+        s,
+        Some(Duration::Seconds(dur)).filter(|_| dur.is_finite() && dur > 0.0),
+    ))
 }
 
 pub fn t_dur_spec(s: NomSpan) -> PResult<Option<Duration>> {
     use nom::branch::alt;
 
-    alt((
-        t_dur_spec_num_beats,
-        t_dur_spec_bpm_num_beats,
-        t_dur_spec_absolute,
-    ))(s)
+    alt((t_dur_spec_num_beats, t_dur_spec_absolute))(s)
 }
 
 pub fn t_dur(s: NomSpan) -> PResult<Option<Duration>> {
@@ -89,6 +84,8 @@ mod tests {
                 num: 3
             })
         );
+        assert_eq!(test_parser_ok(t_dur, "[0:1]", ""), None);
+        assert_eq!(test_parser_ok(t_dur, "[1:0]", ""), None);
         test_parser_err(t_dur, " [4:3]");
         test_parser_err(t_dur, "[4.5:2]");
         test_parser_err(t_dur, "[4:2.5]");
@@ -101,6 +98,10 @@ mod tests {
             test_parser_ok(t_dur, "[ # 1 ]", "").unwrap(),
             Duration::Seconds(1.0)
         );
+        assert_eq!(test_parser_ok(t_dur, "[#0]", ""), None);
+        assert_eq!(test_parser_ok(t_dur, "[#-1]", ""), None);
+        assert_eq!(test_parser_ok(t_dur, "[#inf]", ""), None);
+        assert_eq!(test_parser_ok(t_dur, "[#nan]", ""), None);
         test_parser_err(t_dur, "[#2.5.0]");
         test_parser_err(t_dur, "[#2 .5]");
 
@@ -112,6 +113,9 @@ mod tests {
                 num: 1
             })
         );
+        assert_eq!(test_parser_ok(t_dur, "[0#1:1]", ""), None);
+        assert_eq!(test_parser_ok(t_dur, "[120#0:1]", ""), None);
+        assert_eq!(test_parser_ok(t_dur, "[120#1:0]", ""), None);
         test_parser_err(t_dur, "[120#4:1.5]");
 
         test_parser_err(t_dur, "[4:1#160]");
