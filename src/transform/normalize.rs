@@ -1,4 +1,4 @@
-use crate::insn::{Key, RawNoteInsn, SlideSegment, SlideTrack};
+use crate::insn::{Key, RawNoteInsn, SlideSegment, SlideSegmentShape, SlideTrack};
 use crate::transform::{
     NormalizedHoldParams, NormalizedNote, NormalizedSlideParams, NormalizedSlideSegment,
     NormalizedSlideSegmentParams, NormalizedSlideTrack, NormalizedTapParams,
@@ -105,6 +105,14 @@ pub fn normalize_slide_segment(
 }
 
 pub fn normalize_slide_track(start: Key, track: &SlideTrack) -> Option<NormalizedSlideTrack> {
+    if track.segments.len() > 1
+        && track
+            .segments
+            .iter()
+            .any(|segment| segment.shape() == SlideSegmentShape::Spread)
+    {
+        return None;
+    }
     let mut start = start;
     track
         .segments
