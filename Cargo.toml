@@ -1,6 +1,6 @@
 [package]
 name = "maidata"
-version = "0.0.0"
+version = "0.3.0"
 authors = ["WANG Xuerui <git@xen0n.name>"]
 edition = "2021"
 
