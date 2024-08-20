@@ -1,4 +1,4 @@
-use crate::{NomSpan, PResult, State};
+use crate::parser::{NomSpan, PResult, State};
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -103,7 +103,7 @@ impl<'a> AssociatedBeatmapData<'a> {
 
 pub fn parse_maidata_insns(x: &str) -> (Vec<crate::Sp<crate::insn::RawInsn>>, State) {
     let state = std::cell::RefCell::new(State::default());
-    let (_, result) = crate::insn::parse_maidata_insns(NomSpan::new_extra(x, &state)).unwrap();
+    let (_, result) = crate::parser::parse_maidata_insns(NomSpan::new_extra(x, &state)).unwrap();
     (result, state.into_inner())
 }
 
@@ -143,7 +143,7 @@ pub fn lex_maidata(x: &str) -> (Maidata, State) {
                         let data = diff_map
                             .entry($diff)
                             .or_insert(BeatmapData::default_with_difficulty($diff));
-                        data.insns = crate::insn::parse_maidata_insns(kv.val).unwrap().1;
+                        data.insns = crate::parser::parse_maidata_insns(kv.val).unwrap().1;
                         handled = true;
                     }
                     concat!("lv_", stringify!($num)) => {

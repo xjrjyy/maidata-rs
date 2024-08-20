@@ -1,89 +1,53 @@
 mod note;
 mod position;
+mod span;
+mod utils;
 
-use super::*;
-use crate::span::{expect_ws_delimited, Expect};
-use crate::{NomSpan, PResult, WithSpan};
+use crate::insn::*;
 use nom::character::complete::multispace0;
 use note::{t_bundle, t_tap_multi_simplified};
 use position::*;
+pub use span::*;
+use utils::*;
 
-/// remove leading whitespace
-fn ws<'a, F, O>(f: F) -> impl FnMut(NomSpan<'a>) -> PResult<'a, O>
-where
-    F: 'a + FnMut(NomSpan<'a>) -> PResult<'a, O>,
-{
-    nom::sequence::preceded(multispace0, f)
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct Message {
+    pub span: Span,
+    // TODO: enum for error/warning?
+    pub message: String,
 }
 
-fn ws_list0<'a, F, O>(mut f: F) -> impl FnMut(NomSpan<'a>) -> PResult<'a, Vec<O>>
-where
-    F: 'a + FnMut(NomSpan<'a>) -> PResult<'a, O>,
-{
-    // TODO: nom::multi::separated_list0(multispace0, f) will not work as expected (#1691)
-    // wait for nom 8.0.0...
-    use nom::Err;
-    move |mut i: NomSpan<'a>| {
-        let mut res = Vec::new();
-
-        match f(i) {
-            Err(Err::Error(_)) => return Ok((i, res)),
-            Err(e) => return Err(e),
-            Ok((i1, o)) => {
-                res.push(o);
-                i = i1;
-            }
-        }
-
-        loop {
-            match multispace0(i) {
-                Err(Err::Error(_)) => return Ok((i, res)),
-                Err(e) => return Err(e),
-                Ok((i1, _)) => match f(i1) {
-                    Err(Err::Error(_)) => return Ok((i, res)),
-                    Err(e) => return Err(e),
-                    Ok((i2, o)) => {
-                        res.push(o);
-                        i = i2;
-                    }
-                },
-            }
-        }
+impl std::fmt::Display for Message {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}: {}", self.span, self.message)
     }
 }
 
-fn ws_list1<'a, F, O>(mut f: F) -> impl FnMut(NomSpan<'a>) -> PResult<'a, Vec<O>>
-where
-    F: 'a + FnMut(NomSpan<'a>) -> PResult<'a, O>,
-{
-    // TODO: nom::multi::separated_list1(multispace0, f) will not work as expected (#1691)
-    // wait for nom 8.0.0...
-    use nom::Err;
-    move |mut i: NomSpan<'a>| {
-        let mut res = Vec::new();
+#[derive(Clone, Debug, Default)]
+pub struct State {
+    pub warnings: Vec<Message>,
+    pub errors: Vec<Message>,
+}
 
-        match f(i) {
-            Err(e) => return Err(e),
-            Ok((i1, o)) => {
-                res.push(o);
-                i = i1;
-            }
-        }
+impl State {
+    pub fn add_warning(&mut self, span: Span, message: String) {
+        self.warnings.push(Message { span, message });
+    }
 
-        loop {
-            match multispace0(i) {
-                Err(Err::Error(_)) => return Ok((i, res)),
-                Err(e) => return Err(e),
-                Ok((i1, _)) => match f(i1) {
-                    Err(Err::Error(_)) => return Ok((i, res)),
-                    Err(e) => return Err(e),
-                    Ok((i2, o)) => {
-                        res.push(o);
-                        i = i2;
-                    }
-                },
-            }
-        }
+    pub fn add_error(&mut self, span: Span, message: String) {
+        self.errors.push(Message { span, message });
+    }
+
+    pub fn has_warnings(&self) -> bool {
+        !self.warnings.is_empty()
+    }
+
+    pub fn has_errors(&self) -> bool {
+        !self.errors.is_empty()
+    }
+
+    pub fn has_messages(&self) -> bool {
+        self.has_warnings() || self.has_errors()
     }
 }
 
