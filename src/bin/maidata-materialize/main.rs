@@ -1,3 +1,5 @@
+use serde::Serialize;
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let input = std::env::args()
         .nth(1)
@@ -16,17 +18,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut mcx = maidata::materialize::MaterializationContext::with_offset(offset);
     let notes = mcx.materialize_insns(insns.iter());
 
-    let messages_to_value = |messages: &[maidata::Message]| -> serde_json::Value {
+    fn messages_to_value<T: Serialize>(messages: &[maidata::Sp<T>]) -> serde_json::Value {
         messages
             .iter()
             .map(|msg| {
-                serde_json::json!({
-                    "span": msg.span,
-                    "message": msg.message,
-                })
+                // serde_json::json!({
+                //     "span": msg.span(),
+                //     **msg,
+                // })
+                let json = serde_json::to_value(&**msg).expect("serializing note failed");
+                let mut json = json.as_object().expect("json is not an object").clone();
+                json.insert(
+                    "span".to_string(),
+                    serde_json::to_value(msg.span()).expect("serializing span failed"),
+                );
+                serde_json::Value::Object(json)
             })
             .collect()
-    };
+    }
 
     let json = serde_json::json!({
         "chart": notes.iter().map(|note| {

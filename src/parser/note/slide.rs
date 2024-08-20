@@ -19,15 +19,15 @@ fn t_slide_dur_spec_custom_bpm(s: NomSpan) -> PResult<Option<SlideDuration>> {
 
     if !bpm.is_finite() || bpm <= 0.0 {
         s.extra.borrow_mut().add_error(
+            PError::InvalidBpm(bpm.to_string()),
             (start_loc, end_loc).into(),
-            format!("invalid BPM value in slide duration: {}", bpm),
         );
         return Ok((s, None));
     }
     if !dur.is_finite() || dur <= 0.0 {
         s.extra.borrow_mut().add_error(
+            PError::InvalidDuration(format!("#{}", dur)),
             (start_loc, end_loc).into(),
-            format!("invalid duration value in slide duration: {}", dur),
         );
         return Ok((s, None));
     }
@@ -65,8 +65,8 @@ fn t_slide_dur_spec_custom_seconds(s: NomSpan) -> PResult<Option<SlideDuration>>
     // sec can be 0.0
     if !sec.is_finite() || sec < 0.0 {
         s.extra.borrow_mut().add_error(
+            PError::InvalidSlideStopTime(sec.to_string()),
             (start_loc, end_loc).into(),
-            format!("invalid stop time value in slide duration: {}", sec),
         );
         return Ok((s, None));
     }
@@ -110,7 +110,7 @@ macro_rules! define_slide_segment {
             use nom::bytes::complete::tag;
 
             let (s, _) = $recog(s)?;
-            let (s, destination) = ws(t_key).expect("expected destination key")(s)?;
+            let (s, destination) = ws(t_key).expect(PError::MissingSlideDestinationKey)(s)?;
 
             Ok((
                 s,
@@ -148,8 +148,9 @@ pub fn t_slide_segment_angle(s: NomSpan) -> PResult<Option<SlideSegment>> {
     use nom::character::complete::char;
 
     let (s, _) = char('V')(s)?;
-    let (s, interim) = ws(t_key).expect("expected interim key")(s)?;
-    let (s, destination) = ws(t_key).expect("expected destination key")(s)?;
+    // TODO: add warning if no interim
+    let (s, interim) = ws(t_key).expect(PError::MissingSlideDestinationKey)(s)?;
+    let (s, destination) = ws(t_key).expect(PError::MissingSlideDestinationKey)(s)?;
 
     Ok((
         s,
@@ -198,8 +199,8 @@ pub fn t_slide_track_modifier(
             'b' => {
                 if modifier.is_break {
                     s1.extra.borrow_mut().add_warning(
+                        PWarning::DuplicateModifier('b', NoteType::Slide),
                         (start_loc, end_loc).into(),
-                        "duplicate `b` modifier in slide track instruction".to_string(),
                     );
                 }
                 modifier.is_break = true;
@@ -220,7 +221,7 @@ pub fn t_slide_segment_group(
     let segments = segments.into_iter().flatten().collect::<Vec<_>>();
     // TODO: warn if have modifier before dur
     let (s, modifier) = t_slide_track_modifier(s, SlideTrackModifier::default())?;
-    let (s, dur) = ws(t_slide_dur).expect("expected slide duration")(s)?;
+    let (s, dur) = ws(t_slide_dur).expect(PError::MissingDuration(NoteType::Slide))(s)?;
     let (s, modifier) = t_slide_track_modifier(s, modifier)?;
 
     Ok((s, (segments, dur.flatten(), modifier)))
@@ -244,8 +245,8 @@ pub fn t_slide_track(s: NomSpan, start_key: Option<Key>) -> PResult<Option<Slide
         .fold(SlideTrackModifier::default(), |mut acc, (_, _, x)| {
             if acc.is_break && x.is_break {
                 s.extra.borrow_mut().add_warning(
+                    PWarning::DuplicateModifier('b', NoteType::Slide),
                     (start_loc, end_loc).into(),
-                    "duplicate `b` modifier in slide track instruction".to_string(),
                 );
             }
             acc.is_break |= x.is_break;
@@ -254,8 +255,8 @@ pub fn t_slide_track(s: NomSpan, start_key: Option<Key>) -> PResult<Option<Slide
     if groups.len() > 1 {
         // TODO: message
         s.extra.borrow_mut().add_warning(
+            PWarning::MultipleSlideTrackGroups,
             (start_loc, end_loc).into(),
-            "multiple slide track groups are not supported".to_string(),
         );
     }
     let dur = groups.iter().fold(None, |acc, (_, dur, _)| {
@@ -264,12 +265,11 @@ pub fn t_slide_track(s: NomSpan, start_key: Option<Key>) -> PResult<Option<Slide
                 let result: Option<SlideDuration> = acc + *dur;
                 if result.is_none() {
                     s.extra.borrow_mut().add_error(
+                        PError::DurationMismatch(NoteType::Slide),
                         (start_loc, end_loc).into(),
-                        format!(
-                            "inconsistent slide duration in slide track instruction: {} + {}",
-                            acc, dur
-                        ),
                     );
+                    // TODO
+                    return Some(*dur);
                 }
                 result
             } else {
@@ -283,18 +283,8 @@ pub fn t_slide_track(s: NomSpan, start_key: Option<Key>) -> PResult<Option<Slide
         .into_iter()
         .flat_map(|(segments, _, _)| segments)
         .collect::<Vec<_>>();
-    if segments.is_empty() {
-        s.extra.borrow_mut().add_error(
-            (start_loc, end_loc).into(),
-            "empty slide track instruction".to_string(),
-        );
-        return Ok((s, None));
-    }
-    if dur.is_none() {
-        s.extra.borrow_mut().add_error(
-            (start_loc, end_loc).into(),
-            "missing slide duration in slide track instruction".to_string(),
-        );
+    if segments.is_empty() || dur.is_none() {
+        // no extra error
         return Ok((s, None));
     }
 
@@ -307,8 +297,9 @@ pub fn t_slide_track(s: NomSpan, start_key: Option<Key>) -> PResult<Option<Slide
     if let Some(start_key) = start_key {
         if !validate_slide_track(start_key, &track) {
             s.extra.borrow_mut().add_error(
+                PError::InvalidSlideTrack(format!("{}{}", start_key, track)),
                 (start_loc, end_loc).into(),
-                "invalid slide track instruction".to_string(),
+                // "invalid slide track instruction".to_string(),
             );
             return Ok((s, None));
         }
@@ -321,7 +312,7 @@ pub fn t_slide_sep_track(s: NomSpan, start_key: Option<Key>) -> PResult<Option<S
     use nom::character::complete::char;
 
     let (s, _) = char('*')(s)?;
-    let (s, track) = ws(move |s| t_slide_track(s, start_key)).expect("expected slide track")(s)?;
+    let (s, track) = ws(move |s| t_slide_track(s, start_key)).expect(PError::MissingSlideTrack)(s)?;
 
     Ok((s, track.flatten()))
 }
@@ -349,10 +340,9 @@ pub fn t_slide(s: NomSpan) -> PResult<Option<SpRawNoteInsn>> {
     let (s, end_loc) = nom_locate::position(s)?;
 
     if start_key.is_none() {
-        s.extra.borrow_mut().add_error(
-            (start_loc, end_loc).into(),
-            "expected start key in slide head instruction".to_string(),
-        );
+        s.extra
+            .borrow_mut()
+            .add_error(PError::MissingSlideStartKey, (start_loc, end_loc).into());
     }
 
     let mut start_modifier = TapModifier::default();
@@ -362,8 +352,8 @@ pub fn t_slide(s: NomSpan) -> PResult<Option<SpRawNoteInsn>> {
             "b" => {
                 if start_modifier.is_break {
                     s.extra.borrow_mut().add_warning(
+                        PWarning::DuplicateModifier('b', NoteType::Slide),
                         (start_loc, end_loc).into(),
-                        "duplicate `b` modifier in slide head instruction".to_string(),
                     );
                 }
                 start_modifier.is_break = true;
@@ -371,8 +361,8 @@ pub fn t_slide(s: NomSpan) -> PResult<Option<SpRawNoteInsn>> {
             "x" => {
                 if start_modifier.is_ex {
                     s.extra.borrow_mut().add_warning(
+                        PWarning::DuplicateModifier('x', NoteType::Slide),
                         (start_loc, end_loc).into(),
-                        "duplicate `x` modifier in slide head instruction".to_string(),
                     );
                 }
                 start_modifier.is_ex = true;
@@ -380,8 +370,8 @@ pub fn t_slide(s: NomSpan) -> PResult<Option<SpRawNoteInsn>> {
             "!" => {
                 if is_sudden {
                     s.extra.borrow_mut().add_warning(
+                        PWarning::DuplicateModifier('!', NoteType::Slide),
                         (start_loc, end_loc).into(),
-                        "duplicate `!` modifier in slide head instruction".to_string(),
                     );
                 }
                 is_sudden = true;
@@ -397,11 +387,9 @@ pub fn t_slide(s: NomSpan) -> PResult<Option<SpRawNoteInsn>> {
         if let Some(shape) = shape {
             if start_modifier.shape.is_some() {
                 s.extra.borrow_mut().add_error(
+                    // TODO: better error message
+                    PError::DuplicateShapeModifier(NoteType::Slide),
                     (start_loc, end_loc).into(),
-                    format!(
-                        "duplicate `{}` shape modifier in slide head instruction",
-                        x.fragment()
-                    ),
                 );
             } else {
                 start_modifier.shape = Some(shape);

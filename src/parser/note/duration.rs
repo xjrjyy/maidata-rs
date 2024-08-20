@@ -7,13 +7,9 @@ pub fn t_dur_spec_num_beats_params(s: NomSpan) -> PResult<Option<NumBeatsParams>
     let (s, start_loc) = nom_locate::position(s)?;
     let (s, divisor_str) = digit1(s)?;
     let (s, _) = ws(char(':'))(s)?;
-    let (s, num_str) = ws(digit1).expect("expected number of beats")(s)?;
+    let (s, num_str) = ws(digit1).expect(PError::MissingBeatsNum)(s)?;
     let (s, end_loc) = nom_locate::position(s)?;
     if num_str.is_none() {
-        s.extra.borrow_mut().add_error(
-            (start_loc, end_loc).into(),
-            "expected number of beats".to_string(),
-        );
         return Ok((s, None));
     }
 
@@ -23,11 +19,8 @@ pub fn t_dur_spec_num_beats_params(s: NomSpan) -> PResult<Option<NumBeatsParams>
 
     if divisor == 0 {
         s.extra.borrow_mut().add_error(
+            PError::InvalidBeatDivisor(format!("{}:{}", divisor, num)),
             (start_loc, end_loc).into(),
-            format!(
-                "invalid beat divisor or number of beats: {}:{}",
-                divisor, num
-            ),
         );
         return Ok((s, None));
     }
@@ -57,8 +50,8 @@ pub fn t_dur_spec_bpm_num_beats_params(s: NomSpan) -> PResult<Option<NumBeatsPar
 
     if !bpm.is_finite() || bpm <= 0.0 {
         s.extra.borrow_mut().add_error(
+            PError::InvalidBpm(bpm.to_string()),
             (start_loc, end_loc).into(),
-            format!("invalid bpm value: {}", bpm),
         );
         return Ok((s, None));
     }
@@ -80,8 +73,8 @@ pub fn t_dur_spec_absolute(s: NomSpan) -> PResult<Option<Duration>> {
     // dur can be 0
     if !dur.is_finite() || dur < 0.0 {
         s.extra.borrow_mut().add_error(
+            PError::InvalidDuration(format!("#{}", dur)),
             (start_loc, end_loc).into(),
-            format!("invalid duration value: {}", dur),
         );
         return Ok((s, None));
     }

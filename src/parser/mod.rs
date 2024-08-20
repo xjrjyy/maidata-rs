@@ -1,91 +1,16 @@
 mod note;
 mod position;
+mod span;
+mod state;
+mod utils;
 
-use super::*;
-use crate::span::{expect_ws_delimited, Expect};
-use crate::{NomSpan, PResult, WithSpan};
+use crate::insn::*;
 use nom::character::complete::multispace0;
 use note::{t_bundle, t_tap_multi_simplified};
 use position::*;
-
-/// remove leading whitespace
-fn ws<'a, F, O>(f: F) -> impl FnMut(NomSpan<'a>) -> PResult<'a, O>
-where
-    F: 'a + FnMut(NomSpan<'a>) -> PResult<'a, O>,
-{
-    nom::sequence::preceded(multispace0, f)
-}
-
-fn ws_list0<'a, F, O>(mut f: F) -> impl FnMut(NomSpan<'a>) -> PResult<'a, Vec<O>>
-where
-    F: 'a + FnMut(NomSpan<'a>) -> PResult<'a, O>,
-{
-    // TODO: nom::multi::separated_list0(multispace0, f) will not work as expected (#1691)
-    // wait for nom 8.0.0...
-    use nom::Err;
-    move |mut i: NomSpan<'a>| {
-        let mut res = Vec::new();
-
-        match f(i) {
-            Err(Err::Error(_)) => return Ok((i, res)),
-            Err(e) => return Err(e),
-            Ok((i1, o)) => {
-                res.push(o);
-                i = i1;
-            }
-        }
-
-        loop {
-            match multispace0(i) {
-                Err(Err::Error(_)) => return Ok((i, res)),
-                Err(e) => return Err(e),
-                Ok((i1, _)) => match f(i1) {
-                    Err(Err::Error(_)) => return Ok((i, res)),
-                    Err(e) => return Err(e),
-                    Ok((i2, o)) => {
-                        res.push(o);
-                        i = i2;
-                    }
-                },
-            }
-        }
-    }
-}
-
-fn ws_list1<'a, F, O>(mut f: F) -> impl FnMut(NomSpan<'a>) -> PResult<'a, Vec<O>>
-where
-    F: 'a + FnMut(NomSpan<'a>) -> PResult<'a, O>,
-{
-    // TODO: nom::multi::separated_list1(multispace0, f) will not work as expected (#1691)
-    // wait for nom 8.0.0...
-    use nom::Err;
-    move |mut i: NomSpan<'a>| {
-        let mut res = Vec::new();
-
-        match f(i) {
-            Err(e) => return Err(e),
-            Ok((i1, o)) => {
-                res.push(o);
-                i = i1;
-            }
-        }
-
-        loop {
-            match multispace0(i) {
-                Err(Err::Error(_)) => return Ok((i, res)),
-                Err(e) => return Err(e),
-                Ok((i1, _)) => match f(i1) {
-                    Err(Err::Error(_)) => return Ok((i, res)),
-                    Err(e) => return Err(e),
-                    Ok((i2, o)) => {
-                        res.push(o);
-                        i = i2;
-                    }
-                },
-            }
-        }
-    }
-}
+pub use span::*;
+pub use state::*;
+use utils::*;
 
 pub(crate) fn parse_maidata_insns(s: NomSpan) -> PResult<Vec<SpRawInsn>> {
     let (s, _) = multispace0(s)?;
@@ -125,10 +50,9 @@ fn t_unknown_char(s: NomSpan) -> PResult<Option<SpRawInsn>> {
     let (start_loc, _) = nom_locate::position(s)?;
     let (s, c) = anychar(s)?;
     let (end_loc, _) = nom_locate::position(s)?;
-    s.extra.borrow_mut().add_error(
-        (start_loc, end_loc).into(),
-        format!("unknown character: `{}`", c),
-    );
+    s.extra
+        .borrow_mut()
+        .add_error(PError::UnknownChar(c), (start_loc, end_loc).into());
 
     Ok((s, None))
 }
@@ -164,7 +88,7 @@ fn t_bpm(s: NomSpan) -> PResult<Option<SpRawInsn>> {
         if !bpm.is_finite() || bpm <= 0.0 {
             s.extra
                 .borrow_mut()
-                .add_error(span.into(), format!("invalid bpm value: {}", bpm));
+                .add_error(PError::InvalidBpm(bpm.to_string()), span.into());
             return Ok((s, None));
         }
     }
@@ -191,12 +115,12 @@ fn t_beat_divisor_param_int(s: NomSpan) -> PResult<Option<BeatDivisorParams>> {
     let (s, divisor_str) = digit1(s)?;
     let (s, end_loc) = nom_locate::position(s)?;
 
-    let divisor = divisor_str.fragment().parse().unwrap();
+    let divisor: u32 = divisor_str.fragment().parse().unwrap();
 
     if divisor == 0 {
         s.extra.borrow_mut().add_error(
+            PError::InvalidBeatDivisor(divisor.to_string()),
             (start_loc, end_loc).into(),
-            format!("invalid beat divisor: {}", divisor),
         );
         return Ok((s, None));
     }
@@ -210,8 +134,8 @@ fn t_beat_divisor_param_float(s: NomSpan) -> PResult<Option<BeatDivisorParams>> 
 
     if !dur.is_finite() || dur <= 0.0 {
         s.extra.borrow_mut().add_error(
+            PError::InvalidBeatDivisor(format!("#{}", dur)),
             (start_loc, end_loc).into(),
-            format!("invalid beat divisor duration: {}", dur),
         );
         return Ok((s, None));
     }

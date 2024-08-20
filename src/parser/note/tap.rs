@@ -22,8 +22,8 @@ pub fn t_tap_param(s: NomSpan) -> PResult<TapParams> {
             "b" => {
                 if modifier.is_break {
                     s.extra.borrow_mut().add_warning(
+                        PWarning::DuplicateModifier('b', NoteType::Tap),
                         (start_loc, end_loc).into(),
-                        "duplicate `b` modifier in tap instruction".to_string(),
                     );
                 }
                 modifier.is_break = true;
@@ -31,8 +31,8 @@ pub fn t_tap_param(s: NomSpan) -> PResult<TapParams> {
             "x" => {
                 if modifier.is_ex {
                     s.extra.borrow_mut().add_warning(
+                        PWarning::DuplicateModifier('x', NoteType::Tap),
                         (start_loc, end_loc).into(),
-                        "duplicate `x` modifier in tap instruction".to_string(),
                     );
                 }
                 modifier.is_ex = true;
@@ -47,11 +47,8 @@ pub fn t_tap_param(s: NomSpan) -> PResult<TapParams> {
         if let Some(shape) = shape {
             if modifier.shape.is_some() {
                 s.extra.borrow_mut().add_error(
+                    PError::DuplicateShapeModifier(NoteType::Tap),
                     (start_loc, end_loc).into(),
-                    format!(
-                        "duplicate `{}` shape modifier in tap instruction",
-                        x.fragment()
-                    ),
                 );
             } else {
                 modifier.shape = Some(shape);

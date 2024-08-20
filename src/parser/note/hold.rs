@@ -23,7 +23,7 @@ pub fn t_hold(s: NomSpan) -> PResult<Option<SpRawNoteInsn>> {
         m.extend(modifier_str.clone());
         m
     })(s)?;
-    let (s, dur) = ws(t_dur).expect("expected duration")(s)?;
+    let (s, dur) = ws(t_dur).expect(PError::MissingDuration(NoteType::Hold))(s)?;
     let (s, end_loc) = nom_locate::position(s)?;
 
     let mut modifier = HoldModifier::default();
@@ -32,8 +32,8 @@ pub fn t_hold(s: NomSpan) -> PResult<Option<SpRawNoteInsn>> {
             'b' => {
                 if modifier.is_break {
                     s.extra.borrow_mut().add_warning(
+                        PWarning::DuplicateModifier('b', NoteType::Hold),
                         (start_loc, end_loc).into(),
-                        "duplicate `b` modifier in hold instruction".to_string(),
                     );
                 }
                 modifier.is_break = true;
@@ -41,8 +41,8 @@ pub fn t_hold(s: NomSpan) -> PResult<Option<SpRawNoteInsn>> {
             'x' => {
                 if modifier.is_ex {
                     s.extra.borrow_mut().add_warning(
+                        PWarning::DuplicateModifier('x', NoteType::Hold),
                         (start_loc, end_loc).into(),
-                        "duplicate `x` modifier in hold instruction".to_string(),
                     );
                 }
                 modifier.is_ex = true;

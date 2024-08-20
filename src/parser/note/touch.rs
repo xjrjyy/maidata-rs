@@ -21,8 +21,8 @@ pub fn t_touch_param(s: NomSpan) -> PResult<TouchParams> {
             'f' => {
                 if modifier.is_firework {
                     s.extra.borrow_mut().add_warning(
+                        PWarning::DuplicateModifier('f', NoteType::Touch),
                         (start_loc, end_loc).into(),
-                        "duplicate `f` modifier in touch instruction".to_string(),
                     );
                 }
                 modifier.is_firework = true;
