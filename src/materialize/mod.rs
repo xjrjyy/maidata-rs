@@ -11,19 +11,13 @@ pub type TimestampInSeconds = f64;
 pub type DurationInSeconds = f64;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(tag = "type")]
+#[serde(tag = "type", rename_all = "snake_case")]
 pub enum Note {
-    #[serde(rename = "bpm")]
     Bpm(MaterializedBpm),
-    #[serde(rename = "tap")]
     Tap(MaterializedTap),
-    #[serde(rename = "touch")]
     Touch(MaterializedTouch),
-    #[serde(rename = "hold")]
     Hold(MaterializedHold),
-    #[serde(rename = "touch_hold")]
     TouchHold(MaterializedTouchHold),
-    #[serde(rename = "slide_track")]
     SlideTrack(MaterializedSlideTrack),
 }
 
@@ -44,14 +38,11 @@ pub struct MaterializedTap {
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum MaterializedTapShape {
-    #[serde(rename = "ring")]
     Ring,
-    #[serde(rename = "star")]
     Star,
-    #[serde(rename = "star_spin")]
     StarSpin,
-    #[serde(rename = "invalid")]
     Invalid,
 }
 
