@@ -1,6 +1,7 @@
 mod note;
 mod position;
 mod span;
+mod state;
 mod utils;
 
 use crate::insn::*;
@@ -8,48 +9,8 @@ use nom::character::complete::multispace0;
 use note::{t_bundle, t_tap_multi_simplified};
 use position::*;
 pub use span::*;
+pub use state::*;
 use utils::*;
-
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct Message {
-    pub span: Span,
-    // TODO: enum for error/warning?
-    pub message: String,
-}
-
-impl std::fmt::Display for Message {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}: {}", self.span, self.message)
-    }
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct State {
-    pub warnings: Vec<Message>,
-    pub errors: Vec<Message>,
-}
-
-impl State {
-    pub fn add_warning(&mut self, span: Span, message: String) {
-        self.warnings.push(Message { span, message });
-    }
-
-    pub fn add_error(&mut self, span: Span, message: String) {
-        self.errors.push(Message { span, message });
-    }
-
-    pub fn has_warnings(&self) -> bool {
-        !self.warnings.is_empty()
-    }
-
-    pub fn has_errors(&self) -> bool {
-        !self.errors.is_empty()
-    }
-
-    pub fn has_messages(&self) -> bool {
-        self.has_warnings() || self.has_errors()
-    }
-}
 
 pub(crate) fn parse_maidata_insns(s: NomSpan) -> PResult<Vec<SpRawInsn>> {
     let (s, _) = multispace0(s)?;
@@ -89,10 +50,9 @@ fn t_unknown_char(s: NomSpan) -> PResult<Option<SpRawInsn>> {
     let (start_loc, _) = nom_locate::position(s)?;
     let (s, c) = anychar(s)?;
     let (end_loc, _) = nom_locate::position(s)?;
-    s.extra.borrow_mut().add_error(
-        (start_loc, end_loc).into(),
-        format!("unknown character: `{}`", c),
-    );
+    s.extra
+        .borrow_mut()
+        .add_error(PError::UnknownChar(c), (start_loc, end_loc).into());
 
     Ok((s, None))
 }
@@ -128,7 +88,7 @@ fn t_bpm(s: NomSpan) -> PResult<Option<SpRawInsn>> {
         if !bpm.is_finite() || bpm <= 0.0 {
             s.extra
                 .borrow_mut()
-                .add_error(span.into(), format!("invalid bpm value: {}", bpm));
+                .add_error(PError::InvalidBpm(bpm.to_string()), span.into());
             return Ok((s, None));
         }
     }
@@ -155,12 +115,12 @@ fn t_beat_divisor_param_int(s: NomSpan) -> PResult<Option<BeatDivisorParams>> {
     let (s, divisor_str) = digit1(s)?;
     let (s, end_loc) = nom_locate::position(s)?;
 
-    let divisor = divisor_str.fragment().parse().unwrap();
+    let divisor: u32 = divisor_str.fragment().parse().unwrap();
 
     if divisor == 0 {
         s.extra.borrow_mut().add_error(
+            PError::InvalidBeatDivisor(divisor.to_string()),
             (start_loc, end_loc).into(),
-            format!("invalid beat divisor: {}", divisor),
         );
         return Ok((s, None));
     }
@@ -174,8 +134,8 @@ fn t_beat_divisor_param_float(s: NomSpan) -> PResult<Option<BeatDivisorParams>> 
 
     if !dur.is_finite() || dur <= 0.0 {
         s.extra.borrow_mut().add_error(
+            PError::InvalidBeatDivisor(format!("#{}", dur)),
             (start_loc, end_loc).into(),
-            format!("invalid beat divisor duration: {}", dur),
         );
         return Ok((s, None));
     }

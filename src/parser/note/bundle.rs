@@ -14,7 +14,7 @@ pub fn t_bundle_sep_note(s: NomSpan) -> PResult<Option<SpRawNoteInsn>> {
     use nom::character::complete::char;
 
     let (s, _) = char('/')(s)?;
-    let (s, note) = ws(t_bundle_note).expect("expected note")(s)?;
+    let (s, note) = ws(t_bundle_note).expect(PError::MissingNote)(s)?;
 
     Ok((s, note.flatten()))
 }

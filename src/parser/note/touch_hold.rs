@@ -23,7 +23,7 @@ pub fn t_touch_hold(s: NomSpan) -> PResult<Option<SpRawNoteInsn>> {
         m.extend(modifier_str.clone());
         m
     })(s)?;
-    let (s, dur) = ws(t_dur).expect("expected duration")(s)?;
+    let (s, dur) = ws(t_dur).expect(PError::MissingDuration(NoteType::TouchHold))(s)?;
     let (s, end_loc) = nom_locate::position(s)?;
 
     let mut modifier = TouchHoldModifier::default();
@@ -32,8 +32,8 @@ pub fn t_touch_hold(s: NomSpan) -> PResult<Option<SpRawNoteInsn>> {
             'f' => {
                 if modifier.is_firework {
                     s.extra.borrow_mut().add_warning(
+                        PWarning::DuplicateModifier('f', NoteType::TouchHold),
                         (start_loc, end_loc).into(),
-                        "duplicate `f` modifier in touch hold instruction".to_string(),
                     );
                 }
                 modifier.is_firework = true;
