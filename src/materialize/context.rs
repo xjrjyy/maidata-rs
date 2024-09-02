@@ -191,30 +191,28 @@ fn materialize_slide(
     is_each: bool,
     is_slide_each: bool,
 ) -> Vec<Note> {
-    // star
-    let star = Note::Tap(materialize_tap_params(ts, &p.start, true, is_each));
-    let start_key = p.start.key;
+    let mut start_tap = Some(materialize_tap_params(ts, &p.start, true, is_each));
+    if p.tracks.is_empty() {
+        return vec![Note::Tap(start_tap.unwrap())];
+    }
 
-    let tracks = p.tracks.iter().map(|track| {
+    p.tracks.iter().map(|track| {
         Note::SlideTrack(materialize_slide_track(
             ts,
             beat_dur,
-            start_key,
+            p.start.key,
+            start_tap.take(),
             track,
             is_slide_each,
         ))
-    });
-
-    let mut result = Vec::with_capacity(tracks.len() + 1);
-    result.push(star);
-    result.extend(tracks);
-    result
+    }).collect()
 }
 
 fn materialize_slide_track(
     ts: f64,
     beat_dur: f64,
-    start_key: insn::Key,
+    mut start_key: insn::Key,
+    start_tap: Option<MaterializedTap>,
     track: &insn::SlideTrack,
     is_each: bool,
 ) -> MaterializedSlideTrack {
@@ -229,7 +227,6 @@ fn materialize_slide_track(
 
     let start_ts = ts + stop_time;
 
-    let mut start_key = start_key;
     let segments = track
         .segments
         .iter()
@@ -244,6 +241,7 @@ fn materialize_slide_track(
         ts,
         start_ts,
         dur: materialize_duration(track.dur.slide_duration(), beat_dur),
+        start_tap,
         segments,
         is_break: track.modifier.is_break,
         is_sudden: track.modifier.is_sudden,
