@@ -7,14 +7,12 @@
 [simai]: https://w.atwiki.jp/simai/
 [format]: https://w.atwiki.jp/simai/pages/25.html
 
-项目目前处于很早的阶段，尚未施工完成，不能保证兼容，慎用。
-
 ## 支持的 `maidata.txt` 特性
 
 文件格式的通用特性:
 
 * [x] 基本的元数据字段
-* [ ] 注释 `||xxx\n`
+* [x] 注释 `||xxx\n`（未测试）
 * [ ] 转义序列 `\＆ \＋ \％ \￥`
 * [ ] active message 字段
 
