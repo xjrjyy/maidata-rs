@@ -275,6 +275,7 @@ fn parse_maidata(diff: &AssociatedBeatmapData) -> Option<Vec<Vec<Note>>> {
 }
 
 fn read_file<P: AsRef<std::path::Path>>(path: P) -> String {
-    let content = std::fs::read(path.as_ref()).expect("file reading failed");
+    let content = std::fs::read(path.as_ref())
+        .unwrap_or_else(|_| panic!("reading file {:?} failed", path.as_ref()));
     String::from_utf8(content).expect("decoding file content as utf-8 failed")
 }

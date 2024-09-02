@@ -76,6 +76,7 @@ pub struct MaterializedSlideTrack {
     pub ts: TimestampInSeconds,
     pub start_ts: TimestampInSeconds,
     pub dur: DurationInSeconds,
+    pub start_tap: Option<MaterializedTap>,
     pub segments: Vec<MaterializedSlideSegment>,
     pub is_break: bool,
     pub is_sudden: bool,

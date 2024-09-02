@@ -8,14 +8,12 @@ in the maimai mapping community.
 [simai]: https://w.atwiki.jp/simai/
 [format]: https://w.atwiki.jp/simai/pages/25.html
 
-Currently very much WIP, expect a lot of breakages. Don't use in production.
-
 ## Supported `maidata.txt` features
 
 General format features:
 
 * [x] basic metadata fields
-* [ ] comments `||xxx\n`
+* [x] comments `||xxx\n` (untested)
 * [ ] escape sequences `\＆ \＋ \％ \￥`
 * [ ] active message fields
 
